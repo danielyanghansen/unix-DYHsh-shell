@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "readline.h": "c",
+        "wait.h": "c",
+        "history.h": "c",
+        "types.h": "c"
+    }
+}

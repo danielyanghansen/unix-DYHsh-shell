@@ -34,7 +34,7 @@ void init_shell()
 	"*                                        *\n"
 	"*                                        *\n"
 	"*         DANIEL YANG HANSEN SHELL       *\n"
-	"            -USAGE NOT ADVISED-          *\n"
+	"*           -USAGE NOT ADVISED-          *\n"
 	"*                                        *\n"
 	"*                                        *\n"
 	"******************************************");
@@ -93,25 +93,47 @@ void printDir()
 // Function where the system command is executed
 void execArgs(char** parsed, int isBackgroundProcess)
 {
-	int argLen = -1;
-	while (parsed[++argLen] != NULL) {/*Do nothing ¯\_(ツ)_/¯*/}
+	int argLen = getArgLen(parsed);
 
 	//printf("\nparsed: %s, %s, %s, %s\n", parsed[0], parsed[1], parsed[2], parsed[3]);
 	printf("Size of parsed array: %i", argLen);
 	fflush(stdout);
 
-	for (int n = 0; n <= argLen; n++) {
+	for (int n = 0; n < argLen; n++) {
 		printf("\nArray no: %i: [%s] \n", n, parsed[n]);
 	}
+	printf("\nLooking for I/O Redirection...\n");
+
+	for (int n = 0; n < argLen; n++) {
+		char *p_char_in = strchr(parsed[n], (int) '<');
+		char *p_char_out = strchr(parsed[n], (int) '>');
+
+		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
+		//The **DIFFICULT** alternative would be to chain the streams.
+		if (p_char_in != NULL && parsed[n+1] != NULL) {
+			printf("String: %s and %s\n", parsed[n], parsed[n+1]);
+			printf("\nThis is where we set input to [%s] .See TODO\n",parsed[n+1]);
+			//TODO:
+			//1: Set input stream. Return 0 if there's an error with the input stream
+			//2: Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
+		} else if (p_char_out != NULL  && parsed[n+1] != NULL) {
+			printf("\nThis is where we set output to [%s] . See TODO\n",parsed[n+1]);
+			//TODO:
+			//1: Set input stream. Return 0 if there (by any chance) is an error with the out stream
+			//2: Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
+		}
+	}
+/*
+*/
 
 	pid_t pid = fork();
 	if (pid == -1) {
-		printf("\nFailed forking child..");
+		printf("\nFailed forking child...\n");
 		return;
 	} else if (pid == 0) {
 
 		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command [%s]...", parsed[0]);
+			printf("\nCould not execute command [%s]...\n\n", parsed[0]);
 			fflush(stdout);
 		}
 		exit(0);

@@ -3,7 +3,7 @@
 
 int main() {
 
-    node_t *start = createNode(getpid());
+    node_t *start = createNode(getpid(), "Start");
     setLastNode(start);
 
     fflush(stdout);
@@ -21,7 +21,7 @@ int main() {
 
 		exit(0);
 	} else {
-		node_t * node = createNode(pid);
+		node_t * node = createNode(pid, "Testing");
        
 		addNode(node); 
         node_t *n;

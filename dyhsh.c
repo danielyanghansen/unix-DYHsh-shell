@@ -7,6 +7,7 @@
 #include<readline/history.h>
 #include"linkedList.h"
 #include"linkedList.c"
+#include"parsing.c"
 
 // Clearing the shell using escape sequences
 #define clear() printf("\033[H\033[J") //ctrl L
@@ -265,85 +266,6 @@ int ownCmdHandler(char** parsed)
 	}
 
 	return 0;
-}
-
-// function for finding pipe
-int parsePipe(char* str, char** strpiped)
-{
-	for (int i = 0; i < 2; i++) {
-		strpiped[i] = strsep(&str, "|");
-		if (strpiped[i] == NULL)
-			break;
-	}
-
-	if (strpiped[1] == NULL)
-		return 0; // returns zero if no pipe is found.
-	else {
-		return 1;
-	}
-}
-
-// function for parsing command words
-void parseSpace(char* str, char** parsed)
-{
-	for (int i = 0; i < MAXLIST; i++) {
-		parsed[i] = strsep(&str, " ");
-
-		if (parsed[i] == NULL)
-			break;
-		if (strlen(parsed[i]) == 0)
-			i--;
-	}
-}
-
-//Currently checks everywhere. TODO ?: Rewrite to only check final char
-int parseDaemon(char *str, char** strdaemon)
-{
-	/*
-	int point = strlen(str) - 3; //room for a space at the end
-	point = (point >= 0) ? point : 0;
-	printf("point: %s", &str[point]);
-
-	 if (strcmp(&str[point], "&")) {
-
-	} */
-
-	for (int i = 0; i < 2	; i++) {
-		strdaemon[i] = strsep(&str, "&"); //Finds the first ampersand and strips the rest of the string. 
-		if(strdaemon[i] == NULL)
-			break;
-	}
-
-	if (strdaemon[1] == NULL)
-		return 0;
-	else
-		return 1;
-
-}
-void parseCharToArgs(char **parsed, char splitter) {
-
-	int argLen = -1;
-	while (parsed[++argLen] != NULL) {/*Do nothing ¯\_(ツ)_/¯*/}
-
-	for(int i = 0; i < argLen ;i ++) {
-		//Do someting, checking all elements of arglist for the splitter symbol
-		if (strcmp(parsed[i], splitter)) { //if present:
-			for (int j = argLen; j > i; j--) { //then move up all follwing indexes
-				parsed[j+1] = parsed[j];
-				argLen++;
-			}
-			//then split
-			if (parsed[i][0] == splitter && strlen(parsed[i]) > 1) { //case: first char is splitter
-				parsed[i+1] = parsed[i][1];
-				parsed[i] = splitter + '\0';
-			} else { //splitter is later in the string:
-				//duplicate upwards 1:
-				parsed[i+1] = parsed[i];
-				parsed[i] = strsep(parsed[i+1], splitter);
-			}
-		}
-	}
-
 }
 
 void parseIO(char **parsed) {

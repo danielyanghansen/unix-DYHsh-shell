@@ -250,42 +250,42 @@ int ownCmdHandler(char** parsed)
 	}
 
 	switch (switchOwnArg) {
-	case 1:
-		printf("\nGoodbye\n");
-		exit(0);
-	case 2:
-		chdir(parsed[1]);
-		return 1;
-	case 3:
-		openHelp();
-		return 1;
-	case 4:
-		username = getenv("USER");
-		printf("\nHello %s.\nMind that this is "
-			"not a place to play around."
-			"\nUse help to know more..\n",
-			username);
-		return 1;
-	case 5:
-		printf("=============Processes: =============\n\n");
+		case 1:
+			printf("\nGoodbye\n");
+			exit(0);
+		case 2:
+			chdir(parsed[1]);
+			return 1;
+		case 3:
+			openHelp();
+			return 1;
+		case 4:
+			username = getenv("USER");
+			printf("\nHello %s.\nMind that this is "
+				"not a place to play around."
+				"\nUse help to know more..\n",
+				username);
+			return 1;
+		case 5:
+			printf("=============Processes: =============\n\n");
 
-		node_t *n;
-        n = start;
+			node_t *n;
+			n = start;
 
-        printf("Parent PID: %i\n", n->pidData);
+			printf("Parent PID: %i\n", n->pidData);
 
-        while (n->next != NULL) { 
-            n = n->next;
-            printf("\tProcess PID: %i, Command: %s\n", n->pidData, n->commandData);
-        }
+			while (n->next != NULL) { 
+				n = n->next;
+				printf("\tProcess PID: %i, Command: %s\n", n->pidData, n->commandData);
+			}
 
-		printf("=====================================\n");
-		fflush(stdout);
+			printf("=====================================\n");
+			fflush(stdout);
 
-		return 1;
-	default:
-		break;
-	}
+			return 1;
+		default:
+			break;
+		}
 
 	return 0;
 }
@@ -303,13 +303,13 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 	char* strpiped[2];
 	int piped = 0;
 
-	char* strdaemon[2];
 	int daemon = 0;
-
-	daemon = parseDaemon(str, strdaemon);
+/*
+*/
+	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
 
-	piped = parsePipe(str, strpiped);
+	
 
 	if (piped) {
 		parseSpace(strpiped[0], parsed);
@@ -319,7 +319,7 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 		parseSpace(str, parsed);
 		parseIO(parsed);
 	}
-	printf("\nstr: %s, strpiped: %s, strdaemon: %s, parsed0: %s\n", str, *strpiped, *strdaemon, parsed[0]);
+	printf("\nstr: %s, strpiped: %s, parsed0: %s\n", str, *strpiped, parsed[0]);
 
 	if (ownCmdHandler(parsed)) {
 		return 0;

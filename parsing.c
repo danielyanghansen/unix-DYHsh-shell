@@ -93,27 +93,28 @@ void parseSpace(char* str, char** parsed)
 	}
 }
 
-//Currently checks everywhere. TODO ?: Rewrite to only check final char
-int parseDaemon(char *str, char** strdaemon)
-{
-	/*
-	int point = strlen(str) - 3; //room for a space at the end
-	point = (point >= 0) ? point : 0;
-	printf("point: %s", &str[point]);
+/**
+ * @brief Checks if the last non-space (' ') character is '&'
+ * 
+ * @param str The string to check
+ * @return int true if last non-space character is '&'
+ */
+int parseDaemon(char *str) {
 
-	 if (strcmp(&str[point], "&")) {
+    int isDaemon = 0;
 
-	} */
+    for(int i = strlen(str)-1; i > 0; i--) {
+        char end = str[i];
+        if (end == '&' ){
+                isDaemon = 1;
+                str[i] = ' ';
+                break;
+        } else if (end == ' ') {
+                continue;
+        } else {
+            break;
+        }
+    }
 
-	for (int i = 0; i < 2	; i++) {
-		strdaemon[i] = strsep(&str, "&"); //Finds the first ampersand and strips the rest of the string. 
-		if(strdaemon[i] == NULL)
-			break;
-	}
-
-	if (strdaemon[1] == NULL)
-		return 0;
-	else
-		return 1;
-
+    return isDaemon;
 }

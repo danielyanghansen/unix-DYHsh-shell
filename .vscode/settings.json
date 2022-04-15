@@ -3,6 +3,7 @@
         "readline.h": "c",
         "wait.h": "c",
         "history.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "linkedlist.h": "c"
     }
 }

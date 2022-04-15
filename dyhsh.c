@@ -1,26 +1,25 @@
 // C Program to design a shell in Linux
-#include<stdio.h>
+#include"common.h"
 #include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-
-#define MAXCOM 1000 // max number of letters to be supported
-#define MAXLIST 100 // max number of commands to be supported
+#include"linkedList.h"
+#include"linkedList.c"
 
 // Clearing the shell using escape sequences
 #define clear() printf("\033[H\033[J") //ctrl L
 
+static node_t * start;
+
 char headerText[]=
-" _______     ___    _     _     \n"
-" |  __ \\ \\   / / |  | |   | |    \n"
-" | |  | \\ \\_/ /| |__| |___| |__  \n"
-" | |  | |\\   / |  __  / __| '_ \\ \n"
-" | |__| | | |  | |  | \\__ \\ | | |\n"
-" |_____/  |_|  |_|  |_|___/_| |_|\n\0"
+" \033[0;32m_____\033[0;36m__     __\033[0;34m_    _     \033[0;31m_     \n"
+" \033[0;32m|  __ \\ \033[0;36m\\   / / \033[0;34m|  | |   \033[0;31m| |    \n"
+" \033[0;32m| |  | \\ \033[0;36m\\_/ /\033[0;34m| |__| |\033[0;35m___\033[0;31m| |__  \n"
+" \033[0;32m| |  | |\033[0;36m\\   / \033[0;34m|  __  \033[0;35m/ __\033[0;31m| '_  \\ \n"
+" \033[0;32m| |__| | \033[0;36m| |  \033[0;34m| |  | \033[0;35m\\__ \\ \033[0;31m| | |\n"
+" \033[0;32m|_____/  \033[0;36m|_|  \033[0;34m|_|  |_\033[0;35m|___/\033[0;31m_| |_|\n\0"
 ;
 
 // Greeting shell during startup
@@ -28,16 +27,43 @@ void init_shell()
 {
 	clear();
 	printf("\033[0;32m");
-	printf("\n\n %s", headerText);
-	printf("\n\n\n\n******************"
-		"************************");
-	printf("\n\n\n\tDANIEL YANG HANSEN SHELL");
-	printf("\n\n\t-USAGE NOT ADVISED-");
-	printf("\n\n\n\n*******************"
-		"***********************");
+	printf("\n\n %s \033[0;32m", headerText);
+	printf("\n\n\n\n"
+	"******************************************\n"
+	"*                                        *\n"
+	"*                                        *\n"
+	"*         DANIEL YANG HANSEN SHELL       *\n"
+	"            -USAGE NOT ADVISED-          *\n"
+	"*                                        *\n"
+	"*                                        *\n"
+	"******************************************");
 	char* username = getenv("USER");
 	printf("\n\n\nUSER is: \033[0;33m@%s", username);
 	printf("\033[0m\n"); //reset text color
+}
+
+void zombie_cleanup(node_t *start) {
+
+
+	for(node_t* n = start->next; n != NULL; n = n->next){
+		int wstatus;
+		pid_t deadstatus = waitpid(n->pidData, &wstatus, WNOHANG | WUNTRACED | WCONTINUED);
+
+		if (deadstatus != 0) {
+			if (deadstatus > 0) {
+				kill(deadstatus, SIGKILL);
+			}
+
+			printf("Exit status [%s] = %i\n", n->commandData, WEXITSTATUS(wstatus) );
+			n = n->previous;
+			deleteNode(n->next);
+		}
+		
+	}
+
+	fflush(stdout);
+	
+	return;
 }
 
 // Function to take input
@@ -45,7 +71,7 @@ int takeInput(char* str)
 {
 	char* buf;
 
-	buf = readline("\n>>> ");
+	buf = readline(" ");
 	if (strlen(buf) != 0) {
 		add_history(buf);
 		strcpy(str, buf);
@@ -60,14 +86,12 @@ void printDir()
 {
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
-	printf("\n\033[0;31mDir: \033[0;36m%s\033[0m", cwd);
+	printf("\n\033[0;31mDir: \033[0;36m%s :\033[0m", cwd);
 }
 
 // Function where the system command is executed
-void execArgs(char** parsed)
+void execArgs(char** parsed, int isBackgroundProcess)
 {
-	// For("Parent process id: %i\n", getpid()); a child
-	printf("Parent process id: %i\n", getpid());
 	fflush(stdout);
 	
 	pid_t pid = fork();
@@ -82,14 +106,20 @@ void execArgs(char** parsed)
 		}
 		exit(0);
 	} else {
+		node_t * node = createNode(pid, *parsed);
+		addNode(node);
+
 		// waiting for child to terminate
-		waitpid(pid, NULL, 0);
+		if (!isBackgroundProcess) {
+			int status;
+			waitpid(pid, &status, 0);
+		}
 		return;
 	}
 }
 
 // Function where the piped system commands is executed
-void execArgsPiped(char** parsed, char** parsedpipe)
+void execArgsPiped(char** parsed, char** parsedpipe, int isBackgroundProcess)
 {
 	// 0 is read end, 1 is write end
 	int pipefd[2];
@@ -146,16 +176,17 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 // Help command builtin
 void openHelp()
 {
-	puts("\n***WELCOME TO MY SHELL HELP***"
-		"\nCopyright @ Suprotik Dey"
+	puts("\n***WELCOME TO DYHSH HELP***"
 		"\n-Use the shell at your own risk..."
 		"\nList of Commands supported:"
 		"\n>cd"
 		"\n>ls"
 		"\n>exit"
 		"\n>jobs"
+		"\n>hello"
 		"\n>all other general commands available in UNIX shell"
-		"\n>pipe handling"
+		"\n>I/O Redirection"
+		"\n>Improper pipe handling"
 		"\n>improper space handling");
 
 	return;
@@ -200,8 +231,20 @@ int ownCmdHandler(char** parsed)
 			username);
 		return 1;
 	case 5:
-		printf("Something about background processes");
-		pid_t parentPid = getpid();
+		printf("=============Processes: =============\n\n");
+
+		node_t *n;
+        n = start;
+
+        printf("Parent PID: %i\n", n->pidData);
+
+        while (n->next != NULL) { 
+            n = n->next;
+            printf("\tProcess PID: %i, Command: %s\n", n->pidData, n->commandData);
+        }
+
+		printf("=====================================\n");
+		fflush(stdout);
 
 		return 1;
 	case 6:
@@ -249,8 +292,7 @@ int ownCmdHandler(char** parsed)
 // function for finding pipe
 int parsePipe(char* str, char** strpiped)
 {
-	int i;
-	for (i = 0; i < 2; i++) {
+	for (int i = 0; i < 2; i++) {
 		strpiped[i] = strsep(&str, "|");
 		if (strpiped[i] == NULL)
 			break;
@@ -266,9 +308,7 @@ int parsePipe(char* str, char** strpiped)
 // function for parsing command words
 void parseSpace(char* str, char** parsed)
 {
-	int i;
-
-	for (i = 0; i < MAXLIST; i++) {
+	for (int i = 0; i < MAXLIST; i++) {
 		parsed[i] = strsep(&str, " ");
 
 		if (parsed[i] == NULL)
@@ -278,11 +318,33 @@ void parseSpace(char* str, char** parsed)
 	}
 }
 
-int processString(char* str, char** parsed, char** parsedpipe)
+//Currently checks everywhere. TODO ?: Rewrite to only check final char
+int parseDaemon(char *str, char** strdaemon)
+{
+	for (int i = 0; i < 2; i++) {
+		strdaemon[i] = strsep(&str, "&");
+		if(strdaemon[i] == NULL)
+			break;
+	}
+
+	if (strdaemon[1] == NULL)
+		return 0;
+	else
+		return 1;
+
+}
+
+int processString(char* str, char** parsed, char** parsedpipe, int* isBackgroundTask)
 {
 
 	char* strpiped[2];
 	int piped = 0;
+
+	char* strdaemon[2];
+	int daemon = 0;
+
+	daemon = parseDaemon(str, strdaemon);
+	*isBackgroundTask = daemon;
 
 	piped = parsePipe(str, strpiped);
 
@@ -309,16 +371,24 @@ int main()
 	char* parsedArgsPiped[MAXLIST];
 	int execFlag = 0;
 	init_shell();
+	start = createNode(getpid(), "Parent\0");
+	setLastNode(start);
+
 
 	for(;;){
-		// print shell line
+
+		zombie_cleanup(start);
+
 		printDir();
-		// take input
 		if (takeInput(inputString))
 			continue;
+
+		zombie_cleanup(start);
+
+		int isBackgroundProcess = 0;
 		// process
 		execFlag = processString(inputString,
-		parsedArgs, parsedArgsPiped);
+		parsedArgs, parsedArgsPiped, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command
@@ -326,10 +396,10 @@ int main()
 
 		// execute
 		if (execFlag == 1)
-			execArgs(parsedArgs);
+			execArgs(parsedArgs, isBackgroundProcess);
 
 		if (execFlag == 2)
-			execArgsPiped(parsedArgs, parsedArgsPiped);
+			execArgsPiped(parsedArgs, parsedArgsPiped, isBackgroundProcess);
 	}
 	return 0;
 }

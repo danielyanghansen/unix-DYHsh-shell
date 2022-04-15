@@ -9,9 +9,14 @@
 #include<time.h>
 
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        printf("Not enough args\n");
+        printf("Needs 1 arguments: secondCount\n");
+        return 0;
+    }
 
-    for(int i = 30; i >= 0; i--) {
+    for(int i = atoi(argv[1]); i >= 0; i--) {
         printf("Counting down: %i\n", i);
         fflush(stdout);
         sleep(1);

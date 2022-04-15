@@ -92,8 +92,17 @@ void printDir()
 // Function where the system command is executed
 void execArgs(char** parsed, int isBackgroundProcess)
 {
+	int argLen = -1;
+	while (parsed[++argLen] != NULL) {/*Do nothing ¯\_(ツ)_/¯*/}
+
+	//printf("\nparsed: %s, %s, %s, %s\n", parsed[0], parsed[1], parsed[2], parsed[3]);
+	printf("Size of parsed array: %i", argLen);
 	fflush(stdout);
-	
+
+	for (int n = 0; n <= argLen; n++) {
+		printf("\nArray no: %i: [%s] \n", n, parsed[n]);
+	}
+
 	pid_t pid = fork();
 	if (pid == -1) {
 		printf("\nFailed forking child..");
@@ -101,14 +110,19 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	} else if (pid == 0) {
 
 		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command..");
+			printf("\nCould not execute command [%s]...", parsed[0]);
 			fflush(stdout);
 		}
 		exit(0);
-	} else {
+	} 
+	if (pid != 0){
+
+		for(;;) {/*Things, see below*/ break;}
 		node_t * node = createNode(pid, *parsed);
 		addNode(node);
 
+
+		for(;;) {/*Things, see below*/ break;}
 		// waiting for child to terminate
 		if (!isBackgroundProcess) {
 			int status;
@@ -204,7 +218,6 @@ int ownCmdHandler(char** parsed)
 	ListOfOwnCmds[2] = "help";
 	ListOfOwnCmds[3] = "hello";
 	ListOfOwnCmds[4] = "jobs";
-	ListOfOwnCmds[5] = "children";
 
 	for (i = 0; i < NoOfOwnCmds; i++) {
 		if (strcmp(parsed[0], ListOfOwnCmds[i]) == 0) {
@@ -247,41 +260,6 @@ int ownCmdHandler(char** parsed)
 		fflush(stdout);
 
 		return 1;
-	case 6:
-		{
-			int pid = getpid();
-			char * mypid = malloc(sizeof(pid) +1);   // ex. 34567
-			sprintf(mypid, "%d", pid);
-
-			char* fullpath[1000] = {'\0'};
-			char* absolutepath[1000];
-			strcat(fullpath, "/proc/");
-			strcat(fullpath, "1");
-			strcat(fullpath, "/task/");
-			strcat(fullpath, "1");
-			strcat(fullpath, "/children");
-			printf("Printing full path : %s\n",fullpath);
-
-			//check valid path (if the path length is short enough)
-			if (realpath(fullpath, absolutepath) == NULL) {    
-				printf("Badpath: %s", absolutepath);
-				return 1;;
-			}
-			printf("Absolutepath: %s\n", absolutepath);
-
-			FILE *fp = fopen(absolutepath, "r");
-			size_t bytes_read;
-			int bufsiz = 4096;
-			char buff[bufsiz];
-			char bufferOut[bufsiz];
-			fscanf(fp, "%4096c", buff);
-   			printf("%s", buff );
-
-
-			fclose(fp);
-
-			return 1;
-		}
 	default:
 		break;
 	}
@@ -321,8 +299,17 @@ void parseSpace(char* str, char** parsed)
 //Currently checks everywhere. TODO ?: Rewrite to only check final char
 int parseDaemon(char *str, char** strdaemon)
 {
-	for (int i = 0; i < 2; i++) {
-		strdaemon[i] = strsep(&str, "&");
+	/*
+	int point = strlen(str) - 3; //room for a space at the end
+	point = (point >= 0) ? point : 0;
+	printf("point: %s", &str[point]);
+
+	 if (strcmp(&str[point], "&")) {
+
+	} */
+
+	for (int i = 0; i < 2	; i++) {
+		strdaemon[i] = strsep(&str, "&"); //Finds the first ampersand and strips the rest of the string. 
 		if(strdaemon[i] == NULL)
 			break;
 	}
@@ -331,6 +318,38 @@ int parseDaemon(char *str, char** strdaemon)
 		return 0;
 	else
 		return 1;
+
+}
+void parseCharToArgs(char **parsed, char splitter) {
+
+	int argLen = -1;
+	while (parsed[++argLen] != NULL) {/*Do nothing ¯\_(ツ)_/¯*/}
+
+	for(int i = 0; i < argLen ;i ++) {
+		//Do someting, checking all elements of arglist for the splitter symbol
+		if (strcmp(parsed[i], splitter)) { //if present:
+			for (int j = argLen; j > i; j--) { //then move up all follwing indexes
+				parsed[j+1] = parsed[j];
+				argLen++;
+			}
+			//then split
+			if (parsed[i][0] == splitter && strlen(parsed[i]) > 1) { //case: first char is splitter
+				parsed[i+1] = parsed[i][1];
+				parsed[i] = splitter + '\0';
+			} else { //splitter is later in the string:
+				//duplicate upwards 1:
+				parsed[i+1] = parsed[i];
+				parsed[i] = strsep(parsed[i+1], splitter);
+			}
+		}
+	}
+
+}
+
+void parseIO(char **parsed) {
+	parseCharToArgs(parsed, "<");
+	parseCharToArgs(parsed, ">");
+
 
 }
 
@@ -353,9 +372,10 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 		parseSpace(strpiped[1], parsedpipe);
 
 	} else {
-
 		parseSpace(str, parsed);
+		parseIO(parsed);
 	}
+	printf("\nstr: %s, strpiped: %s, strdaemon: %s, parsed0: %s\n", str, *strpiped, *strdaemon, parsed[0]);
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
@@ -395,11 +415,15 @@ int main()
 		// 2 if it is including a pipe.
 
 		// execute
-		if (execFlag == 1)
+
+		if (execFlag == 1) {
+			printf("%s", *parsedArgs);
 			execArgs(parsedArgs, isBackgroundProcess);
 
-		if (execFlag == 2)
+		}
+		else if (execFlag == 2) {
 			execArgsPiped(parsedArgs, parsedArgsPiped, isBackgroundProcess);
+		}
 	}
 	return 0;
 }

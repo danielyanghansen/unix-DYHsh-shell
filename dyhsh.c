@@ -17,6 +17,8 @@
 
 static node_t * start;
 
+char* buffer[MAXCOM] = {0};
+
 char headerText[]=
 " \033[0;32m_____\033[0;36m__     __\033[0;34m_    _     \033[0;31m_     \n"
 " \033[0;32m|  __ \\ \033[0;36m\\   / / \033[0;34m|  | |   \033[0;31m| |    \n"
@@ -79,9 +81,9 @@ int takeInput(char* str)
 	if (strlen(buf) != 0) {
 		add_history(buf);
 		strcpy(str, buf);
-		return 0;
-	} else {
 		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -175,8 +177,9 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	if (pid != 0){
 
 		for(;;) {/*Things, see below*/ break;}
-		node_t * node = createNode(pid, *parsed);
+		node_t * node = createNode(pid, buffer);
 		addNode(node);
+		memset(buffer, 0, sizeof(buffer));
 
 
 		for(;;) {/*Things, see below*/ break;}
@@ -351,6 +354,7 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 
 	} else {
 		parseSpace(str, parsed);
+		if (parsed[0] == NULL) return 0;
 		parseIO(parsed);
 	}
 	printf("\nstr: %s, strpiped: %s, parsed0: %s\n", str, *strpiped, parsed[0]);
@@ -378,9 +382,9 @@ int main()
 		zombie_cleanup(start);
 
 		printDir();
-		if (takeInput(inputString))
+		if (!takeInput(inputString))
 			continue;
-
+		strcpy(buffer, inputString);
 		zombie_cleanup(start);
 
 		int isBackgroundProcess = 0;

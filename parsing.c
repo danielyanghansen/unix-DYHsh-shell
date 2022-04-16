@@ -19,20 +19,15 @@ void parseCharToArgs(char **parsed, char splitter) {
 
 	int argLen = getArgLen(parsed);
 
-	for(int i = 0; i < argLen ;printf("ArgLen: %i\n", argLen) && i++ ) {     
+	for(int i = 0; i < argLen ; i++ ) {     
 		//Do someting, checking all elements of arglist for the splitter symbol
-
-        printf("\nDealing with string: %s\n", parsed[i]);
         
         volatile char *copy = parsed[i];
         char *p_char = strchr(copy, (int) splitter);
 		if ( p_char != NULL) { //if present:
-            printf("i: %i\n", i);
-
 
             if (strlen(parsed[i]) > 1) { //as long as it's more than one symbol
                 for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes
-                    printf("Moving index %i to %i\n", j, j+1);
                     parsed[j+1] = parsed[j];
                 }
                 argLen++;
@@ -42,7 +37,6 @@ void parseCharToArgs(char **parsed, char splitter) {
                 if (parsed[i][0] == splitter) { //case: first char is splitter
                     parsed[i+1] = p_char +1;
                     char symbols[2] = {splitter, '\0'};
-                    printf("Strlen symbol: %i", strlen(symbols));
                     parsed[i] = symbols;
                 } else { //splitter is later in the string:
                     /*
@@ -57,7 +51,6 @@ void parseCharToArgs(char **parsed, char splitter) {
 
                     parsed[i] = before;
                     parsed[i+1] = p_char;
-                    printf("Before: %s\nAfter: %s\n", parsed[i], parsed[i+1]);
                 }
             }
 		}

@@ -105,14 +105,7 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	int inputFlag = 0;
 	int outputFlag = 0;
 
-	//printf("\nparsed: %s, %s, %s, %s\n", parsed[0], parsed[1], parsed[2], parsed[3]);
-	printf("Size of parsed array: %i", argLen);
-	fflush(stdout);
-
-	for (int n = 0; n < argLen; n++) {
-		printf("\nArray no: %i: [%s] \n", n, parsed[n]);
-	}
-	printf("\nLooking for I/O Redirection...\n");
+	fflush(stdout); //printf("Haha\n");
 
 	for (int n = 0; n < argLen; n++) {
 		char *p_char_in = strchr(parsed[n], (int) '<');
@@ -153,13 +146,13 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		printf("\nFailed forking child...\n");
 		return;
 	} else if (pid == 0) {
-		
+		fflush(stdout);
 		if (inputFlag == 1) { //Return -1 if there's an error with the input stream
 			if (freopen(pathin, "r", stdin) == NULL) perror("Error: Couldn't redirect input stream");
 		}
 	
 		if (outputFlag == 1) { //Return -1 if there's an error with the output stream
-			printf("Now we are trying to set output stream to %s \n", pathout);
+			printf("Outputting to: [%s]\n", pathout);
 			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
 		}
 
@@ -357,7 +350,8 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 		if (parsed[0] == NULL) return 0;
 		parseIO(parsed);
 	}
-	printf("\nstr: %s, strpiped: %s, parsed0: %s\n", str, *strpiped, parsed[0]);
+
+	fflush(stdout);
 
 	if (ownCmdHandler(parsed)) {
 		return 0;

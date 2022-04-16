@@ -1,10 +1,13 @@
 // C Program to design a shell in Linux
-#include"common.h"
 #include<string.h>
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
+#include<stdio.h>
+#include <errno.h>
+
+#include"common.h"
 #include"linkedList.h"
 #include"linkedList.c"
 #include"parsing.c"
@@ -95,6 +98,11 @@ void execArgs(char** parsed, int isBackgroundProcess)
 {
 	int argLen = getArgLen(parsed);
 
+	char *pathin[MAXCOM] = {0};
+	char *pathout[MAXCOM] = {0};
+	int inputFlag = 0;
+	int outputFlag = 0;
+
 	//printf("\nparsed: %s, %s, %s, %s\n", parsed[0], parsed[1], parsed[2], parsed[3]);
 	printf("Size of parsed array: %i", argLen);
 	fflush(stdout);
@@ -110,17 +118,29 @@ void execArgs(char** parsed, int isBackgroundProcess)
 
 		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
 		//The **DIFFICULT** alternative would be to chain the streams.
+		//Output appending (>>) is not supported
 		if (p_char_in != NULL && parsed[n+1] != NULL) {
-			printf("String: %s and %s\n", parsed[n], parsed[n+1]);
-			printf("\nThis is where we set input to [%s] .See TODO\n",parsed[n+1]);
-			//TODO:
-			//1: Set input stream. Return 0 if there's an error with the input stream
-			//2: Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
+
+			inputFlag = 1; 
+			strcpy(pathin, parsed[n+1]);
+			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
+				parsed[m] = parsed[m+2];
+			}
+			parsed[argLen -1] = NULL;
+			parsed[argLen -2] = NULL;
+			argLen -= 2;
+			n--;
+
 		} else if (p_char_out != NULL  && parsed[n+1] != NULL) {
-			printf("\nThis is where we set output to [%s] . See TODO\n",parsed[n+1]);
-			//TODO:
-			//1: Set input stream. Return 0 if there (by any chance) is an error with the out stream
-			//2: Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
+			outputFlag = 1; 
+			strcpy(pathout, parsed[n+1]);
+			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
+				parsed[m] = parsed[m+2];
+			}
+			parsed[argLen -1] = NULL;
+			parsed[argLen -2] = NULL;
+			argLen -= 2;
+			n--;
 		}
 	}
 /*
@@ -131,13 +151,27 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		printf("\nFailed forking child...\n");
 		return;
 	} else if (pid == 0) {
+		
+		if (inputFlag == 1) { //Return -1 if there's an error with the input stream
+			if (freopen(pathin, "r", stdin) == NULL) perror("Error: Couldn't redirect input stream");
+		}
+	
+		if (outputFlag == 1) { //Return -1 if there's an error with the output stream
+			printf("Now we are trying to set output stream to %s \n", pathout);
+			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
+		}
 
 		if (execvp(parsed[0], parsed) < 0) {
 			printf("\nCould not execute command [%s]...\n\n", parsed[0]);
 			fflush(stdout);
 		}
+
+		freopen("dev/stdin", "r", stdin);
+		freopen("dev/stdout", "w", stdout);
+
 		exit(0);
-	} 
+	}
+
 	if (pid != 0){
 
 		for(;;) {/*Things, see below*/ break;}

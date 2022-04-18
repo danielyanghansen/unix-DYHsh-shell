@@ -350,8 +350,6 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 		parseIO(parsed);
 	}
 
-	fflush(stdout);
-
 	if (ownCmdHandler(parsed)) {
 		return 0;
 	}

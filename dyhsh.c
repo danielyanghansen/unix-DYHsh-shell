@@ -17,6 +17,8 @@
 
 static node_t * start;
 
+char* buffer[MAXCOM] = {0};
+
 char headerText[]=
 " \033[0;32m_____\033[0;36m__     __\033[0;34m_    _     \033[0;31m_     \n"
 " \033[0;32m|  __ \\ \033[0;36m\\   / / \033[0;34m|  | |   \033[0;31m| |    \n"
@@ -79,9 +81,9 @@ int takeInput(char* str)
 	if (strlen(buf) != 0) {
 		add_history(buf);
 		strcpy(str, buf);
-		return 0;
-	} else {
 		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -103,14 +105,7 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	int inputFlag = 0;
 	int outputFlag = 0;
 
-	//printf("\nparsed: %s, %s, %s, %s\n", parsed[0], parsed[1], parsed[2], parsed[3]);
-	printf("Size of parsed array: %i", argLen);
 	fflush(stdout);
-
-	for (int n = 0; n < argLen; n++) {
-		printf("\nArray no: %i: [%s] \n", n, parsed[n]);
-	}
-	printf("\nLooking for I/O Redirection...\n");
 
 	for (int n = 0; n < argLen; n++) {
 		char *p_char_in = strchr(parsed[n], (int) '<');
@@ -157,7 +152,7 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		}
 	
 		if (outputFlag == 1) { //Return -1 if there's an error with the output stream
-			printf("Now we are trying to set output stream to %s \n", pathout);
+			printf("Outputting to: [%s]\n", pathout);
 			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
 		}
 
@@ -175,11 +170,11 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	if (pid != 0){
 
 		for(;;) {/*Things, see below*/ break;}
-		node_t * node = createNode(pid, *parsed);
+		node_t * node = createNode(pid, buffer);
 		addNode(node);
+		memset(buffer, 0, sizeof(buffer));
 
 
-		for(;;) {/*Things, see below*/ break;}
 		// waiting for child to terminate
 		if (!isBackgroundProcess) {
 			int status;
@@ -351,9 +346,9 @@ int processString(char* str, char** parsed, char** parsedpipe, int* isBackground
 
 	} else {
 		parseSpace(str, parsed);
+		if (parsed[0] == NULL) return 0;
 		parseIO(parsed);
 	}
-	printf("\nstr: %s, strpiped: %s, parsed0: %s\n", str, *strpiped, parsed[0]);
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
@@ -378,9 +373,9 @@ int main()
 		zombie_cleanup(start);
 
 		printDir();
-		if (takeInput(inputString))
+		if (!takeInput(inputString))
 			continue;
-
+		strcpy(buffer, inputString);
 		zombie_cleanup(start);
 
 		int isBackgroundProcess = 0;

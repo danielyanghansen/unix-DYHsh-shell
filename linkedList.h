@@ -5,7 +5,7 @@
 
 typedef struct PidNode {
     int pidData;
-    char* commandData[MAXCOM];
+    char commandData[MAXCOM];
     struct PidNode* next;
     struct PidNode* previous;
 } node_t;

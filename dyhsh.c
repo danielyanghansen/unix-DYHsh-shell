@@ -105,7 +105,7 @@ void execArgs(char** parsed, int isBackgroundProcess)
 	int inputFlag = 0;
 	int outputFlag = 0;
 
-	fflush(stdout); //printf("Haha\n");
+	fflush(stdout);
 
 	for (int n = 0; n < argLen; n++) {
 		char *p_char_in = strchr(parsed[n], (int) '<');

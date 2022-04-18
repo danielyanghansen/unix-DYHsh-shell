@@ -175,7 +175,6 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		memset(buffer, 0, sizeof(buffer));
 
 
-		for(;;) {/*Things, see below*/ break;}
 		// waiting for child to terminate
 		if (!isBackgroundProcess) {
 			int status;

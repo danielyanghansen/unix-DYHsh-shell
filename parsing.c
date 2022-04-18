@@ -1,4 +1,7 @@
 #include "common.h"
+#include "parsing.h"
+#include "utils.c"
+
 
 int getArgLen(char **parsed) {
 
@@ -15,45 +18,80 @@ int getArgLen(char **parsed) {
     return argLen;
 }
 
+int freeArgs(char **parsed) {
+	for(int i = getArgLen(parsed) -1; i >= 0; i--) {
+        free(parsed[i]);
+	}
+    return 0;
+}
+
+
+char* parseMalloc(char *parsedString) {
+    if (parsedString != NULL) {
+        printf("Starting parseMalloc with string %s\n", parsedString);
+        char temp[sizeof(parsedString)];
+        strcpy(temp, parsedString);
+        parsedString = (char*) malloc(sizeof(temp));
+        strcpy(parsedString, temp);
+    }
+    return parsedString;
+}
+
 void parseCharToArgs(char **parsed, char splitter) {
 
 	int argLen = getArgLen(parsed);
 
 	for(int i = 0; i < argLen ; i++ ) {     
 		//Do someting, checking all elements of arglist for the splitter symbol
+        printf("Round %i, dealing with[%s]\n", i, parsed[i]);
         
-        volatile char *copy = parsed[i];
-        char *p_char = strchr(copy, (int) splitter);
-		if ( p_char != NULL) { //if present:
-
-            if (strlen(parsed[i]) > 1) { //as long as it's more than one symbol
+		if (strlen(parsed[i]) > 1) { //if present:
+                printf("Str: %s\n", parsed[i]);
+            char *p_char = strchr(parsed[i], (int) splitter);
+            if ( p_char != NULL) { //as long as it's more than one symbol
                 for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes
                     parsed[j+1] = parsed[j];
                 }
                 argLen++;
 
+                printf("Before checking first symbol\n");
+                fflush(stdout);
+
 
 			//then split
+                printf("First symbol is: %c\n", parsed[i][0]);
                 if (parsed[i][0] == splitter) { //case: first char is splitter
-                    parsed[i+1] = p_char +1;
+                    parsed[i+1] = (char*) (p_char +1);
+                    parsed[i+1] = parseMalloc(parsed[i+1]);
                     char symbols[2] = {splitter, '\0'};
-                    parsed[i] = symbols;
+
+                    free(parsed[i]);
+                    parsed[i] = parseMalloc(symbols);
                 } else { //splitter is later in the string:
                     /*
                     */
-                    char* after[MAXCOM] = {0};
+                    char after[MAXCOM] = {0};
                     strcpy(after, parsed[i]);
 
-                    char* before[MAXCOM] = {0};
+                    char before[MAXCOM] = {0};
                     
 
-                    strncpy(before, &copy[0], p_char -&copy[0]);
+                    strncpy(before, parsed[i], (int) (p_char -parsed[i]));
+                    strcpy(after, p_char);
+                    printf("Before: %s, After: %s\n", before, after);
 
+                    free(parsed[i]);
                     parsed[i] = before;
-                    parsed[i+1] = p_char;
+                    parsed[i] = parseMalloc(parsed[i]);
+                    parsed[i+1] = after;
+                    parsed[i+1] = parseMalloc(parsed[i+1]);
+/*
+*/
                 }
             }
 		}
+        checkArgsList(parsed);
+        printf("End of round %i\n", i);
     }
 }
 
@@ -77,7 +115,9 @@ int parsePipe(char* str, char** strpiped)
 void parseSpace(char* str, char** parsed)
 {
 	for (int i = 0; i < MAXLIST; i++) {
+        
 		parsed[i] = strsep(&str, " ");
+        parsed[i] = parseMalloc(parsed[i]);
 
 		if (parsed[i] == NULL)
 			break;

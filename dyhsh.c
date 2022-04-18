@@ -17,7 +17,7 @@
 
 static node_t * start;
 
-char* buffer[MAXCOM] = {0};
+char buffer[MAXCOM] = {0};
 
 char headerText[]=
 " \033[0;32m_____\033[0;36m__     __\033[0;34m_    _     \033[0;31m_     \n"
@@ -100,8 +100,8 @@ void execArgs(char** parsed, int isBackgroundProcess)
 {
 	int argLen = getArgLen(parsed);
 
-	char *pathin[MAXCOM] = {0};
-	char *pathout[MAXCOM] = {0};
+	char pathin[MAXCOM] = {0};
+	char pathout[MAXCOM] = {0};
 	int inputFlag = 0;
 	int outputFlag = 0;
 
@@ -118,6 +118,8 @@ void execArgs(char** parsed, int isBackgroundProcess)
 
 			inputFlag = 1; 
 			strcpy(pathin, parsed[n+1]);
+			free(parsed[n]);
+			free(parsed[n+1]);
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
@@ -129,6 +131,8 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		} else if (p_char_out != NULL  && parsed[n+1] != NULL) {
 			outputFlag = 1; 
 			strcpy(pathout, parsed[n+1]);
+			free(parsed[n]);
+			free(parsed[n+1]);
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
@@ -152,7 +156,6 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		}
 	
 		if (outputFlag == 1) { //Return -1 if there's an error with the output stream
-			printf("Outputting to: [%s]\n", pathout);
 			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
 		}
 
@@ -320,48 +323,43 @@ int ownCmdHandler(char** parsed)
 }
 
 void parseIO(char **parsed) {
-	parseCharToArgs(parsed, "<");
-	parseCharToArgs(parsed, ">");
+	parseCharToArgs(parsed, '<');
+	parseCharToArgs(parsed, '>');
 
 
 }
 
-int processString(char* str, char** parsed, char** parsedpipe, int* isBackgroundTask)
+int processString(char* str, char** parsed, int* isBackgroundTask)
 {
-
-	char* strpiped[2];
-	int piped = 0;
-
 	int daemon = 0;
 /*
 */
 	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
 
+
 	
+	parseSpace(str, parsed);
+	printf("Space parsing done\n");
+	if (parsed[0] == NULL) return 0;
+	parseIO(parsed);
 
-	if (piped) {
-		parseSpace(strpiped[0], parsed);
-		parseSpace(strpiped[1], parsedpipe);
 
-	} else {
-		parseSpace(str, parsed);
-		if (parsed[0] == NULL) return 0;
-		parseIO(parsed);
-	}
-
+	printf("Parsing complete\n");
+	fflush(stdout);
 	if (ownCmdHandler(parsed)) {
 		return 0;
 	}
 	else{
-		return 1 + piped;
+		return 1;
 	}
 }
 
 int main()
 {
 	char inputString[MAXCOM], *parsedArgs[MAXLIST];
-	char* parsedArgsPiped[MAXLIST];
+	memset(parsedArgs, 0, sizeof(parsedArgs));
+	//char* parsedArgsPiped[MAXLIST];
 	int execFlag = 0;
 	init_shell();
 	start = createNode(getpid(), "Parent\0");
@@ -381,7 +379,7 @@ int main()
 		int isBackgroundProcess = 0;
 		// process
 		execFlag = processString(inputString,
-		parsedArgs, parsedArgsPiped, &isBackgroundProcess);
+		parsedArgs, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command
@@ -390,12 +388,8 @@ int main()
 		// execute
 
 		if (execFlag == 1) {
-			printf("%s", *parsedArgs);
 			execArgs(parsedArgs, isBackgroundProcess);
 
-		}
-		else if (execFlag == 2) {
-			execArgsPiped(parsedArgs, parsedArgsPiped, isBackgroundProcess);
 		}
 	}
 	return 0;

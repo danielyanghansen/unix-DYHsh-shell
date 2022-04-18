@@ -8,7 +8,6 @@
 #include"linkedList.c"
 #include"parsing.c"
 
-
 void parseRandom(char* str, char** parsed, char* splitter)
 {
 	for (int i = 0; i < MAXLIST; i++) {
@@ -44,6 +43,20 @@ int main() {
 
     printf("%s\n", strList[0]);
     */
+   char sym = '<';
+   char symb[2] = {sym, '\0'};
+   char **list[5] = {0};
+
+   list[0] = symb;
+   list[0] = parseMalloc(list[0]);
+   printf("Symbol: %s, Length %i\n", list[0], strlen(list[0]));
+
+   list[1] = list[0];
+   list[0] = "Hello\n";
+   list[0] = parseMalloc(list[0]);
+   printf("Symbol: %s, Length %i\n", list[0], strlen(list[0]));
+   printf("Symbol: %s, Length %i\n", list[1], strlen(list[1]));
+
 
     char inputString[MAXCOM] = "ls> files.txt && grep .c< files.txt> result\0";
 

@@ -16,6 +16,7 @@ node_t * createNode(int pidData, char* str){
 
 int setLastNode(node_t *node) {
     last = node;
+    return 0;
 }
 
 int addNode(node_t *node) {  

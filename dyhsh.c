@@ -146,7 +146,7 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		printf("\nFailed forking child...\n");
 		return;
 	} else if (pid == 0) {
-		fflush(stdout);
+		
 		if (inputFlag == 1) { //Return -1 if there's an error with the input stream
 			if (freopen(pathin, "r", stdin) == NULL) perror("Error: Couldn't redirect input stream");
 		}

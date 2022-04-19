@@ -48,24 +48,37 @@ int takeInput(char* str) {
 void printDir() {
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
-	if (strcmp(cwd, homedir)) {
+	if (strcmp(cwd, homedir) == 0) {
 		strcpy(cwd, "~");
 	}
 	printf("\n\033[0;31mDir: \033[0;36m%s :\033[0m", cwd);
 	return;
 }
 
-// Function where the system command is executed
-void execArgs(char** parsed, int isBackgroundProcess) {
+void redirectInput(char* filepath){
+  FILE *fd;
+  fd = fopen(filepath, "r");
+  if (fd == NULL) {
+    perror("Error: Couldn't redirect input stream");
+    return;
+  }
+  dup2(fileno(fd), STDIN_FILENO);
+  fclose(fd);
+}
+
+void redirectOutput(char* filepath){
+  FILE *fd;
+  fd = fopen(filepath, "w");
+  if (fd == NULL) {
+    perror("Error: Couldn't redirect output stream");
+    return;
+  }
+  dup2(fileno(fd), STDOUT_FILENO);
+  fclose(fd);
+}
+void flagIORedirect(int *inputFlag, int *outputFlag, char *pathin, char *pathout, char **parsed) {
 	int argLen = getArgLen(parsed);
-
-	char pathin[MAXCOM] = {0};
-	char pathout[MAXCOM] = {0};
-	int inputFlag = 0;
-	int outputFlag = 0;
-
-	fflush(stdout);
-
+	
 	for (int n = 0; n < argLen; n++) {
 		char *p_char_in = strchr(parsed[n], (int) '<');
 		char *p_char_out = strchr(parsed[n], (int) '>');
@@ -75,7 +88,7 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 		//Output appending (>>) is not supported
 		if (p_char_in != NULL && parsed[n+1][0] != '\0') {
 
-			inputFlag = 1; 
+			*inputFlag = 1; 
 			strcpy(pathin, parsed[n+1]);
 			parsed[n][0] = '\0';
 			parsed[n+1][0] = '\0';
@@ -88,7 +101,7 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			n--;
 
 		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
-			outputFlag = 1; 
+			*outputFlag = 1; 
 			strcpy(pathout, parsed[n+1]);
 			parsed[n][0] = '\0';
 			parsed[n+1][0] = '\0';
@@ -101,6 +114,19 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			n--;
 		}
 	}
+}
+
+// Function where the system command is executed
+void execArgs(char** parsed, int isBackgroundProcess) {
+
+	char pathin[MAXCOM] = {0};
+	char pathout[MAXCOM] = {0};
+	int inputFlag = 0;
+	int outputFlag = 0;
+
+	flagIORedirect(&inputFlag, &outputFlag, pathin, pathout, parsed);
+
+	int argLen = getArgLen(parsed); 
 
 	char* executable [MAXLIST] = {'\0'};
 	for (int i = 0; i < argLen; i++) {
@@ -113,11 +139,11 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 		return;
 	} else if (pid == 0) {
 		if (inputFlag == 1) { //Return -1 if there's an error with the input stream
-			if (freopen(pathin, "r", stdin) == NULL) perror("Error: Couldn't redirect input stream");
+			redirectInput(pathin);
 		}
 	
 		if (outputFlag == 1) { //Return -1 if there's an error with the output stream
-			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
+			redirectOutput(pathout);
 		}
 
 		if (execvp(executable[0], executable) < 0) {
@@ -147,35 +173,40 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 }
 
 // Function where the piped system commands is executed
-void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
+void execArgsPiped(char** parsed, char** parsedpipe)
 {
-	printf("Piping unimplemented....\n");
-
-	int pipefd[MAXPIPE];
-
-	checkArgsList(unparsedPipe);
-
-	for (int n = 0; n < getArgLen(unparsedPipe) && n < MAXPIPE; n++) {
-		printf("Pipe part %i: [%s]\n", n, unparsedPipe[n]);
-
-		char* temp[MAXLIST];
-		for (int i = 0; i < MAXLIST; i++) {
-			temp[i] = malloc(sizeof(char) * MAXCOM);
-			temp[i][0] = '\0';
-		}
-		parseChar(unparsedPipe[n], temp, " ", MAXLIST);
-		parseIO(temp);
-
-		checkArgsList(temp);
-
-/*
-		
-*/
-	}
-	/*
 	// 0 is read end, 1 is write end
 	int pipefd[2];
 	pid_t p1, p2;
+
+	int inputFlag1 = 0;
+	int outputFlag1 = 0;
+	int inputFlag2 = 0;
+	int outputFlag2 = 0;
+
+	char* pathin1[MAXCOM] = {0};
+	char* pathout1[MAXCOM] = {0};
+	char* pathin2[MAXCOM] = {0};
+	char* pathout2[MAXCOM] = {0};
+
+	flagIORedirect(&inputFlag1, &outputFlag1, pathin1, pathout1, parsed);
+
+	flagIORedirect(&inputFlag2, &outputFlag2, pathin2, pathout2, parsedpipe);
+
+
+//MUST BE AFTER flagIORediret!
+	int argLen1 = getArgLen(parsed);
+	int argLen2 = getArgLen(parsedpipe);
+
+	char* executable1 [MAXLIST] = {'\0'};
+	char* executable2 [MAXLIST] = {'\0'};
+	
+	for (int i = 0; i < argLen1; i++) {
+		executable1[i] = parsed[i];
+	}
+	for (int i = 0; i < argLen2; i++) {
+		executable2[i] = parsedpipe[i];
+	}
 
 	if (pipe(pipefd) < 0) {
 		printf("\nPipe could not be initialized");
@@ -188,18 +219,30 @@ void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
 	}
 
 	if (p1 == 0) {
-		// Child 1 executing..Type Something 
+		// Child 1 executing..
 		// It only needs to write at the write end
+		if (inputFlag1 == 1) { //Return -1 if there's an error with the input stream
+			redirectInput(pathin1);
+		}
+		if (outputFlag1 == 1) { //Return -1 if there's an error with the output stream
+			redirectOutput(pathout1);
+		}
 		close(pipefd[0]);
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 
-		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command 1..");
+		if (execvp(executable1[0], executable1) < 0) {
+			printf("\nCould not execute command 1 [%s]...\n", executable1[0]);
 			exit(0);
 		}
 	} else {
 		// Parent executing
+		node_t * node = createNode(p1, CMD_BUFFER);
+		addNode(node);
+
+		int status1;
+		waitpid(p1, &status1, WNOHANG);
+
 		p2 = fork();
 
 		if (p2 < 0) {
@@ -210,22 +253,36 @@ void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
 		// Child 2 executing..
 		// It only needs to read at the read end
 		if (p2 == 0) {
+			if (inputFlag2 == 1) { //Return -1 if there's an error with the input stream
+				redirectInput(pathin2);
+			}
+		
+			if (outputFlag2 == 1) { //Return -1 if there's an error with the output stream
+				redirectOutput(pathout2);
+			}
 			close(pipefd[1]);
 			dup2(pipefd[0], STDIN_FILENO);
 			close(pipefd[0]);
-			if (execvp(parsedpipe[0], parsedpipe) < 0) {
-				printf("\nCould not execute command 2..");
+			if (execvp(executable2[0], executable2) < 0) {
+				printf("\nCould not execute command 2 [%s]...\n", executable2[0]);
 				exit(0);
 			}
-		} else {
+		} else { //Parent
+			node_t * node = createNode(p2, CMD_BUFFER);
+			addNode(node);
+			memset(CMD_BUFFER, 0, sizeof(CMD_BUFFER)); //Reset CMD_BUFFER to zero
 			// parent executing, waiting for two children
-			wait(NULL);
-			wait(NULL);
+
+			int status2;
+			waitpid(p2, &status2, WNOHANG);
+
+
+
+			return;
 		}
 	}
-*/
-	return;
 }
+
 
 // Help command builtin
 void openHelp() {
@@ -279,26 +336,45 @@ int ownCmdHandler(char** parsed) {
 	return 0;
 }
 
-int processString(char* str, char** parsed, char** unparsedPiped, int* isBackgroundTask)
+int processString(char* str, char** parsed, char** parsedpipe, int* isBackgroundTask)
 {
 	int daemon = 0;
 	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
 
-	int isPiped = parseChar(str, unparsedPiped, "|", MAXPIPE);
-	if (isPiped) {
-		return 2;
-	}
+	char* strpiped[2];
+	char before[MAXCOM];
+	char after[MAXCOM];
+	memset(before, 0, sizeof(before));
+	memset(after, 0, sizeof(after));
+	strpiped[0] = before;
+	strpiped[1] = after;
+	int isPiped = 0;
 
-	parseChar(str, parsed, " ", MAXLIST);
-	if (parsed[0][0] == '\0') return 0;
-	parseIO(parsed);
+	//int isPiped = parseChar(str, parsedpipe, "|", MAXPIPE);
+	isPiped = parsePipe(str, strpiped); //strip string into strpiped[0] on "|"
+
+	if(isPiped) {
+		parseChar(strpiped[0], parsed, " ", MAXLIST);
+		parseChar(strpiped[1], parsedpipe, " ", MAXLIST);
+		strcat(strpiped[0], "\0");
+		strcat(strpiped[1], "\0");
+		parseIO(parsed);
+		parseIO(parsedpipe);
+		checkArgsList(parsed);
+		checkArgsList(parsedpipe);
+	}
+	else {
+		parseChar(str, parsed, " ", MAXLIST);
+		if (parsed[0][0] == '\0') return 0;
+		parseIO(parsed);
+	}
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
 	}
 	else{
-		return 1;
+		return 1 + isPiped;
 	}
 }
 
@@ -308,14 +384,14 @@ int main() {
 
 	char *inputString = malloc(sizeof(char) * MAXCOM);
 	char **parsedArgs = malloc(sizeof(char*) * (MAXLIST + 1));
-	char **unparsedPipeParts = malloc(sizeof(char*) * (MAXPIPE + 1)); //Need an extra spot for judging end state
+	char **parsedArgsPipe = malloc(sizeof(char*) * (MAXPIPE + 1)); //Need an extra spot for judging end state
 
 	
 	for(int i = 0; i < MAXLIST + 1; i++) {
 		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
 	for(int i = 0; i < MAXPIPE + 1; i++) {
-		unparsedPipeParts[i] = (char*) malloc(sizeof(char) * MAXCOM);
+		parsedArgsPipe[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
 	
 	
@@ -335,7 +411,7 @@ int main() {
 			parsedArgs[i][0] = '\0';
 		}
 		for(int i =0; i < MAXPIPE + 1; i ++) {
-			unparsedPipeParts[i][0] = '\0';
+			parsedArgsPipe[i][0] = '\0';
 		}
 		
 		printDir();
@@ -348,7 +424,7 @@ int main() {
 
 		int isBackgroundProcess = 0;
 		// process
-		execFlag = processString(inputString, parsedArgs, unparsedPipeParts, &isBackgroundProcess);
+		execFlag = processString(inputString, parsedArgs, parsedArgsPipe, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command
@@ -359,7 +435,7 @@ int main() {
 			execArgs(parsedArgs, isBackgroundProcess);
 		}
 		if (execFlag == 2) {
-			execArgsPiped(unparsedPipeParts, isBackgroundProcess);
+			execArgsPiped(parsedArgs, parsedArgsPipe);
 		}
 	}
 	freeArgs(parsedArgs);

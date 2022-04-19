@@ -65,15 +65,21 @@ void parseCharToArgs(char **parsed, char splitter) {
 
 // function for finding pipe
 int parsePipe(char* str, char** strpiped) {
-	for (int i = 0; i < MAXPIPE; i++) {
-		strpiped[i] = strsep(&str, "|");
-		if (strpiped[i][0] == '\0')
+    const char s[2] = "|";
+    char* token;
+    token = strtok(str, s);
+	for (int i = 0; i < 2; i++) {
+		if (token == NULL) {
+            strpiped[i][0] = '\0';
 			break;
+        }
+		strcpy(strpiped[i], token);
+        token = strtok(NULL, s);
 	}
 
-	if (strpiped[1][0] == '\0')
+	if (strpiped[1][0] == '\0') {
 		return 0; // returns zero if no pipe is found.
-	else {
+	} else {
 		return 1;
 	}
 }

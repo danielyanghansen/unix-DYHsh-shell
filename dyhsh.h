@@ -64,11 +64,17 @@ int takeInput(char* str);
 // Function to print Current Directory.
 void printDir();
 
+//Function to redirect input stream into filepath
+void redirectInput(char* filepath);
+
+//Function to redirect outp
+void redirectOutput(char* filepath);
+
 // Function where the system command is executed
 void execArgs(char** parsed, int isBackgroundProcess);
 
 // Function where the piped system commands is executed
-void execArgsPiped(char** unparsedPipe, int isBackgroundProcess);
+void execArgsPiped(char** parsed, char** parsedpipe);
 
 // Help command builtin
 void openHelp();
@@ -76,6 +82,9 @@ void openHelp();
 // Function to execute builtin commands
 int ownCmdHandler(char** parsed);
 
-int processString(char* str, char** parsed, char** unparsedPiped, int* isBackgroundTask);
+int processString(char* str, char** parsed, char** parsedpipe, int* isBackgroundTask);
+
+void flagIORedirect(int *inputFlag, int *outputFlag, char *pathin, char *pathout, char **parsed);
+
 
 #endif

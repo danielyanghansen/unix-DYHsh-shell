@@ -126,44 +126,6 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 
 	flagIORedirect(&inputFlag, &outputFlag, pathin, pathout, parsed);
 
-	/*
-	int argLen = getArgLen(parsed);
-	for (int n = 0; n < argLen; n++) {
-		char *p_char_in = strchr(parsed[n], (int) '<');
-		char *p_char_out = strchr(parsed[n], (int) '>');
-
-		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
-		//The **DIFFICULT** alternative would be to chain the streams.
-		//Output appending (>>) is not supported
-		if (p_char_in != NULL && parsed[n+1][0] != '\0') {
-
-			inputFlag = 1; 
-			strcpy(pathin, parsed[n+1]);
-			parsed[n][0] = '\0';
-			parsed[n+1][0] = '\0';
-			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
-				memcpy(parsed[m], parsed[m+2], sizeof(char *));
-			}
-			strcpy(parsed[argLen -1], "\0");
-			strcpy(parsed[argLen -2],"\0");
-			argLen -= 2;
-			n--;
-
-		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
-			outputFlag = 1; 
-			strcpy(pathout, parsed[n+1]);
-			parsed[n][0] = '\0';
-			parsed[n+1][0] = '\0';
-			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
-				parsed[m] = parsed[m+2];
-			}
-			parsed[argLen -1][0] = '\0';
-			parsed[argLen -2][0] = '\0';
-			argLen -= 2;
-			n--;
-		}
-	}
-	*/
 	int argLen = getArgLen(parsed); 
 
 	char* executable [MAXLIST] = {'\0'};
@@ -217,6 +179,22 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 	int pipefd[2];
 	pid_t p1, p2;
 
+	int inputFlag1 = 0;
+	int outputFlag1 = 0;
+	int inputFlag2 = 0;
+	int outputFlag2 = 0;
+
+	char* pathin1[MAXCOM] = {0};
+	char* pathout1[MAXCOM] = {0};
+	char* pathin2[MAXCOM] = {0};
+	char* pathout2[MAXCOM] = {0};
+
+	flagIORedirect(&inputFlag1, &outputFlag1, pathin1, pathout1, parsed);
+
+	flagIORedirect(&inputFlag2, &outputFlag2, pathin2, pathout2, parsedpipe);
+
+
+//MUST BE AFTER flagIORediret!
 	int argLen1 = getArgLen(parsed);
 	int argLen2 = getArgLen(parsedpipe);
 
@@ -243,6 +221,12 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 	if (p1 == 0) {
 		// Child 1 executing..
 		// It only needs to write at the write end
+		if (inputFlag1 == 1) { //Return -1 if there's an error with the input stream
+			redirectInput(pathin1);
+		}
+		if (outputFlag1 == 1) { //Return -1 if there's an error with the output stream
+			redirectOutput(pathout1);
+		}
 		close(pipefd[0]);
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
@@ -253,6 +237,12 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 		}
 	} else {
 		// Parent executing
+		node_t * node = createNode(p1, CMD_BUFFER);
+		addNode(node);
+
+		int status1;
+		waitpid(p1, &status1, WNOHANG);
+
 		p2 = fork();
 
 		if (p2 < 0) {
@@ -263,19 +253,32 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 		// Child 2 executing..
 		// It only needs to read at the read end
 		if (p2 == 0) {
+			if (inputFlag2 == 1) { //Return -1 if there's an error with the input stream
+				redirectInput(pathin2);
+			}
+		
+			if (outputFlag2 == 1) { //Return -1 if there's an error with the output stream
+				redirectOutput(pathout2);
+			}
 			close(pipefd[1]);
 			dup2(pipefd[0], STDIN_FILENO);
 			close(pipefd[0]);
 			if (execvp(executable2[0], executable2) < 0) {
 				printf("\nCould not execute command 2 [%s]...\n", executable2[0]);
-				checkArgsList(executable1);
-				checkArgsList(executable2);
 				exit(0);
 			}
-		} else {
+		} else { //Parent
+			node_t * node = createNode(p2, CMD_BUFFER);
+			addNode(node);
+			memset(CMD_BUFFER, 0, sizeof(CMD_BUFFER)); //Reset CMD_BUFFER to zero
 			// parent executing, waiting for two children
-			wait(NULL);
-			wait(NULL);
+
+			int status2;
+			waitpid(p2, &status2, WNOHANG);
+
+
+
+			return;
 		}
 	}
 }

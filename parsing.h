@@ -15,10 +15,7 @@ char* parseMalloc(char *parsedString);
 
 void parseCharToArgs(char **parsed, char splitter);
 
-// function for finding pipe
-int parsePipe(char* str, char** strpiped);
-
-void parseChar(char* str, char** parsed, char* splitter);
+int parseChar(char* str, char** parsed, char* splitter);
 
 /**
  * @brief Checks if the last non-space (' ') character is '&'

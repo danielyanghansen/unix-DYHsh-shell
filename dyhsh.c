@@ -80,10 +80,10 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			parsed[n][0] = '\0';
 			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
-				parsed[m] = parsed[m+2];
+				memcpy(parsed[m], parsed[m+2], sizeof(char*));
 			}
-			parsed[argLen -1] = "\0";
-			parsed[argLen -2] = "\0";
+			parsed[argLen -1][0] = "\0";
+			parsed[argLen -2][0] = "\0";
 			argLen -= 2;
 			n--;
 
@@ -147,9 +147,26 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 }
 
 // Function where the piped system commands is executed
-void execArgsPiped(char** parsed, char** parsedpipe, int isBackgroundProcess)
+void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
 {
 	printf("Piping unimplemented....\n");
+
+	for (int n = 0; n < getArgLen(unparsedPipe); n++) {
+		printf("Pipe part %i: [%s]\n", n, unparsedPipe[n]);
+
+		char* temp[MAXLIST];
+		for (int i = 0; i < MAXLIST; i++) {
+			temp[i] = malloc(sizeof(char) * MAXCOM);
+			temp[i][0] = '\0';
+		}
+		parseChar(unparsedPipe[n], temp, " ");
+		parseIO(temp);
+
+		checkArgsList(temp);
+/*
+		
+*/
+	}
 	/*
 	// 0 is read end, 1 is write end
 	int pipefd[2];
@@ -257,17 +274,20 @@ int ownCmdHandler(char** parsed) {
 	return 0;
 }
 
-int processString(char* str, char** parsed, int* isBackgroundTask)
+int processString(char* str, char** parsed, char** unparsedPiped, int* isBackgroundTask)
 {
 	int daemon = 0;
 	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
-	
+
+	int isPiped = parseChar(str, unparsedPiped, "|");
+	if (isPiped) {
+		return 2;
+	}
+
 	parseChar(str, parsed, " ");
 	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
-
-	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
@@ -283,11 +303,16 @@ int main() {
 
 	char *inputString = malloc(sizeof(char) * MAXCOM);
 	char **parsedArgs = malloc(sizeof(char*) * MAXLIST);
+	char **unparsedPipeParts = malloc(sizeof(char*) * MAXPIPE);
 
 	
 	for(int i = 0; i < MAXLIST; i++) {
 		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
+	for(int i = 0; i < MAXPIPE; i++) {
+		unparsedPipeParts[i] = (char*) malloc(sizeof(char) * MAXCOM);
+	} 
+	
 	
 	
 	//char* parsedArgsPiped[MAXLIST];
@@ -301,21 +326,24 @@ int main() {
 		memset(inputString, 0, sizeof(char) * MAXCOM);
 		zombie_cleanup(start);
 
+		for(int i =0; i < MAXLIST; i ++) {
+			parsedArgs[i][0] = '\0';
+		}
+		for(int i =0; i < MAXPIPE; i ++) {
+			unparsedPipeParts[i][0] = '\0';
+		}
+		
 		printDir();
 		if (!takeInput(inputString))
 			continue;
 		
-		for(int i =0; i < MAXLIST; i ++) {
-			parsedArgs[i][0] = '\0';
-		}
 		
-		fflush(stdin);
 		strcpy(CMD_BUFFER, inputString);
 		zombie_cleanup(start);
 
 		int isBackgroundProcess = 0;
 		// process
-		execFlag = processString(inputString, parsedArgs, &isBackgroundProcess);
+		execFlag = processString(inputString, parsedArgs, unparsedPipeParts, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command
@@ -324,6 +352,9 @@ int main() {
 		// execute
 		if (execFlag == 1) {
 			execArgs(parsedArgs, isBackgroundProcess);
+		}
+		if (execFlag == 2) {
+			execArgsPiped(unparsedPipeParts, isBackgroundProcess);
 		}
 	}
 	freeArgs(parsedArgs);

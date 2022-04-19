@@ -68,7 +68,7 @@ void printDir();
 void execArgs(char** parsed, int isBackgroundProcess);
 
 // Function where the piped system commands is executed
-void execArgsPiped(char** parsed, char** parsedpipe, int isBackgroundProcess);
+void execArgsPiped(char** unparsedPipe, int isBackgroundProcess);
 
 // Help command builtin
 void openHelp();
@@ -76,6 +76,6 @@ void openHelp();
 // Function to execute builtin commands
 int ownCmdHandler(char** parsed);
 
-int processString(char* str, char** parsed, int* isBackgroundTask);
+int processString(char* str, char** parsed, char** unparsedPiped, int* isBackgroundTask);
 
 #endif

@@ -30,19 +30,18 @@ void parseCharToArgs(char **parsed, char splitter) {
 		//Do someting, checking all elements of arglist for the splitter symbol
         if(parsed[i][0] == '\0') break;
 
-		if (strlen(parsed[i]) > 1) { //if present:
+		if (strlen(parsed[i]) > 1) { //as long as it's more than one char to check
+
+            if(parsed[i][0] == splitter && parsed[i][1] == '\0') goto parseEnd;
+
             char *p_char = strchr(parsed[i], (int) splitter);
-            int state = (p_char == NULL);
+        
 
-            if (state) {
-                continue;
-            }
-
-            if (!state) { //as long as it's more than one symbol
+            if (p_char != NULL) {
                 for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes (except the last)
-                    parsed[j+1] = parsed[j];
+                    memcpy(parsed[j+1], parsed[j], sizeof(char*));
                 }
-                argLen++;
+            argLen++;
 
 			//then split
                 if (parsed[i][0] == splitter) { //case: first char is splitter
@@ -57,16 +56,16 @@ void parseCharToArgs(char **parsed, char splitter) {
                     strcpy(parsed[i+1], p_char);
                     *p_char = '\0';
                 }
-            if(parsed[i +1][0] == '\0') break;
+            parseEnd:
+                if(parsed[i +1][0] == '\0') break;
             }
 		}
     }
 }
 
 // function for finding pipe
-int parsePipe(char* str, char** strpiped)
-{
-	for (int i = 0; i < 2; i++) {
+int parsePipe(char* str, char** strpiped) {
+	for (int i = 0; i < MAXPIPE; i++) {
 		strpiped[i] = strsep(&str, "|");
 		if (strpiped[i][0] == '\0')
 			break;
@@ -79,8 +78,7 @@ int parsePipe(char* str, char** strpiped)
 	}
 }
 
-void parseChar(char* str, char** parsed, char* splitter)
-{
+int parseChar(char* str, char** parsed, char* splitter) {
     char* token;
 
     token = strtok(str, splitter);   
@@ -93,6 +91,11 @@ void parseChar(char* str, char** parsed, char* splitter)
             i--;
         }
         token = strtok(NULL, splitter);
+	}
+    if (parsed[1][0] == '\0')
+		return 0; // returns zero if no pipe is found.
+	else {
+		return 1;
 	}
 }
 

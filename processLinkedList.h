@@ -1,5 +1,5 @@
-#ifndef __linkedlist_h__
-#define __linkedlist_h__
+#ifndef __process_linkedlist_h__
+#define __process_linkedlist_h__
 
 #include"common.h"
 
@@ -12,7 +12,7 @@ typedef struct PidNode {
 
 static struct PidNode* last;
 
-node_t * createNode(int pidData, char* str);
+node_t* createNode(int pidData, char* str);
 
 /**
  * @brief Adds a node to the end of the linked list
@@ -24,18 +24,15 @@ node_t * createNode(int pidData, char* str);
  */
 int addNode(node_t *node);
 
-
-/**
- * @brief LEAVE IT. I LIKE IT. -daniel :)
- * 
- * @param node 
- * @param prevNode 
- * @return int 
- */
 int insertNode(node_t *node, node_t *prevNode);
 
 int deleteNode(node_t *node);
 
 int setLastNode(node_t* node);
+
+//Function to remove zombie processes and remove old indexes from process linkedlist
+void zombie_cleanup(node_t *start);
+
+void jobs(node_t* startNode);
 
 #endif

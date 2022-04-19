@@ -4,6 +4,9 @@
         "wait.h": "c",
         "history.h": "c",
         "types.h": "c",
-        "linkedlist.h": "c"
+        "processLinkedList.h": "c",
+        "common.h": "c",
+        "stdio.h": "c",
+        "dyhsh.h": "c"
     }
 }

@@ -1,40 +1,24 @@
-#include "common.h"
 #include "parsing.h"
-#include "utils.c"
 
-
-int getArgLen(char **parsed) {
-
-    int argLen = 0;
-
-	//while((void*) parsed[++argLen] != NULL) {/*Do nothing ¯\_(ツ)_/¯*/}
-    for(int i = 0; 1 ; i++)
-    {
-        if (((void*)parsed[i] == NULL)) {
-            argLen = i;
-            break;
-        }
-    }
-    return argLen;
-}
-
-int freeArgs(char **parsed) {
+int freeArgs(char **parsed) { //Currently unused
 	for(int i = getArgLen(parsed) -1; i >= 0; i--) {
         free(parsed[i]);
 	}
     return 0;
 }
 
-
+/**
+ * @brief mallocs a string of length MAXCOM
+ * 
+ * @param parsedString 
+ * @return char* 
+ */
 char* parseMalloc(char *parsedString) {
+    char* temp = malloc(sizeof(char)*MAXCOM);
     if (parsedString != NULL) {
-        printf("Starting parseMalloc with string %s\n", parsedString);
-        char temp[sizeof(parsedString)];
         strcpy(temp, parsedString);
-        parsedString = (char*) malloc(sizeof(temp));
-        strcpy(parsedString, temp);
     }
-    return parsedString;
+    return temp;
 }
 
 void parseCharToArgs(char **parsed, char splitter) {
@@ -43,55 +27,48 @@ void parseCharToArgs(char **parsed, char splitter) {
 
 	for(int i = 0; i < argLen ; i++ ) {     
 		//Do someting, checking all elements of arglist for the splitter symbol
-        printf("Round %i, dealing with[%s]\n", i, parsed[i]);
-        
+        if(parsed[i] == NULL) break;
 		if (strlen(parsed[i]) > 1) { //if present:
-                printf("Str: %s\n", parsed[i]);
             char *p_char = strchr(parsed[i], (int) splitter);
-            if ( p_char != NULL) { //as long as it's more than one symbol
-                for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes
+            int state = (p_char == NULL);
+
+            if (state) {
+                continue;
+            }
+
+            if (!state) { //as long as it's more than one symbol
+                for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes (except the last)
                     parsed[j+1] = parsed[j];
                 }
                 argLen++;
 
-                printf("Before checking first symbol\n");
-                fflush(stdout);
-
-
 			//then split
-                printf("First symbol is: %c\n", parsed[i][0]);
                 if (parsed[i][0] == splitter) { //case: first char is splitter
-                    parsed[i+1] = (char*) (p_char +1);
-                    parsed[i+1] = parseMalloc(parsed[i+1]);
-                    char symbols[2] = {splitter, '\0'};
 
+                    char symbols[2] = {splitter, '\0'};
+                    char temp[MAXCOM];
+
+                    strcpy(temp, parsed[i]);
                     free(parsed[i]);
                     parsed[i] = parseMalloc(symbols);
+                    char *p_char2 = (char*) (strchr(temp, (int) splitter) + 1);
+                    parsed[i+1] = parseMalloc((char*) p_char2);
+
                 } else { //splitter is later in the string:
-                    /*
-                    */
                     char after[MAXCOM] = {0};
-                    strcpy(after, parsed[i]);
+                    strcpy(after, parsed[i]); //copy over the whole string
 
                     char before[MAXCOM] = {0};
-                    
-
                     strncpy(before, parsed[i], (int) (p_char -parsed[i]));
                     strcpy(after, p_char);
-                    printf("Before: %s, After: %s\n", before, after);
 
                     free(parsed[i]);
-                    parsed[i] = before;
-                    parsed[i] = parseMalloc(parsed[i]);
-                    parsed[i+1] = after;
-                    parsed[i+1] = parseMalloc(parsed[i+1]);
-/*
-*/
+                    parsed[i] = parseMalloc(before);
+                    parsed[i+1] = parseMalloc(after);
                 }
+            if(parsed[i +1] == NULL) break;
             }
 		}
-        checkArgsList(parsed);
-        printf("End of round %i\n", i);
     }
 }
 
@@ -111,18 +88,22 @@ int parsePipe(char* str, char** strpiped)
 	}
 }
 
-// function for parsing command words
-void parseSpace(char* str, char** parsed)
+void parseChar(char* str, char** parsed, char* splitter)
 {
-	for (int i = 0; i < MAXLIST; i++) {
-        
-		parsed[i] = strsep(&str, " ");
-        parsed[i] = parseMalloc(parsed[i]);
+    char s[2];
+    strcpy(s,splitter);
+    char* token;
 
-		if (parsed[i] == NULL)
+    token = strtok(str, s);   
+	for (int i = 0; i < MAXLIST; i++) {
+		if (token == NULL) {
 			break;
-		if (strlen(parsed[i]) == 0)
-			i--;
+        }
+        parsed[i] = parseMalloc(token);
+		if (strlen(parsed[i]) == 0) {
+            i--;
+        }
+        token = strtok(NULL, s);
 	}
 }
 
@@ -150,4 +131,10 @@ int parseDaemon(char *str) {
     }
 
     return isDaemon;
+}
+
+void parseIO(char **parsed) {
+	parseCharToArgs(parsed, '<');
+	parseCharToArgs(parsed, '>');
+	return;
 }

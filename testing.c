@@ -4,9 +4,11 @@
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-#include"linkedList.h"
-#include"linkedList.c"
+#include"processLinkedList.h"
+#include"processLinkedList.c"
 #include"parsing.c"
+
+//NB! The whole thing is outdated.
 
 void parseRandom(char* str, char** parsed, char* splitter)
 {

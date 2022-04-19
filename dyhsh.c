@@ -1,82 +1,38 @@
 // C Program to design a shell in Linux
-#include<string.h>
+#include"dyhsh.h"
+
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<readline/readline.h>
 #include<readline/history.h>
-#include<stdio.h>
-#include <errno.h>
+#include<errno.h>
+#include<pwd.h>
 
-#include"common.h"
-#include"linkedList.h"
-#include"linkedList.c"
+#include"processLinkedList.c"
 #include"parsing.c"
 
-// Clearing the shell using escape sequences
-#define clear() printf("\033[H\033[J") //ctrl L
+struct passwd *pw;
+
+char *homedir;
 
 static node_t * start;
 
-char buffer[MAXCOM] = {0};
-
-char headerText[]=
-" \033[0;32m_____\033[0;36m__     __\033[0;34m_    _     \033[0;31m_     \n"
-" \033[0;32m|  __ \\ \033[0;36m\\   / / \033[0;34m|  | |   \033[0;31m| |    \n"
-" \033[0;32m| |  | \\ \033[0;36m\\_/ /\033[0;34m| |__| |\033[0;35m___\033[0;31m| |__  \n"
-" \033[0;32m| |  | |\033[0;36m\\   / \033[0;34m|  __  \033[0;35m/ __\033[0;31m| '_  \\ \n"
-" \033[0;32m| |__| | \033[0;36m| |  \033[0;34m| |  | \033[0;35m\\__ \\ \033[0;31m| | |\n"
-" \033[0;32m|_____/  \033[0;36m|_|  \033[0;34m|_|  |_\033[0;35m|___/\033[0;31m_| |_|\n\0"
-;
+static char CMD_BUFFER[MAXCOM] = {0};
 
 // Greeting shell during startup
-void init_shell()
-{
+void init_shell() {
 	clear();
 	printf("\033[0;32m");
 	printf("\n\n %s \033[0;32m", headerText);
-	printf("\n\n\n\n"
-	"******************************************\n"
-	"*                                        *\n"
-	"*                                        *\n"
-	"*         DANIEL YANG HANSEN SHELL       *\n"
-	"*           -USAGE NOT ADVISED-          *\n"
-	"*                                        *\n"
-	"*                                        *\n"
-	"******************************************");
-	char* username = getenv("USER");
-	printf("\n\n\nUSER is: \033[0;33m@%s", username);
+	printf("%s\n", headerCard);
+	printf("\n\n\nUSER is: \033[0;33m@%s", getUsername());
 	printf("\033[0m\n"); //reset text color
-}
-
-void zombie_cleanup(node_t *start) {
-
-
-	for(node_t* n = start->next; n != NULL; n = n->next){
-		int wstatus;
-		pid_t deadstatus = waitpid(n->pidData, &wstatus, WNOHANG | WUNTRACED | WCONTINUED);
-
-		if (deadstatus != 0) {
-			if (deadstatus > 0) {
-				kill(deadstatus, SIGKILL);
-			}
-
-			printf("Exit status [%s] = %i\n", n->commandData, WEXITSTATUS(wstatus) );
-			n = n->previous;
-			deleteNode(n->next);
-		}
-		
-	}
-
-	fflush(stdout);
-	
 	return;
 }
 
 // Function to take input
-int takeInput(char* str)
-{
+int takeInput(char* str) {
 	char* buf;
-
 	buf = readline(" ");
 	if (strlen(buf) != 0) {
 		add_history(buf);
@@ -88,16 +44,18 @@ int takeInput(char* str)
 }
 
 // Function to print Current Directory.
-void printDir()
-{
+void printDir() {
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
+	if (strcmp(cwd, homedir)) {
+		strcpy(cwd, "~");
+	}
 	printf("\n\033[0;31mDir: \033[0;36m%s :\033[0m", cwd);
+	return;
 }
 
 // Function where the system command is executed
-void execArgs(char** parsed, int isBackgroundProcess)
-{
+void execArgs(char** parsed, int isBackgroundProcess) {
 	int argLen = getArgLen(parsed);
 
 	char pathin[MAXCOM] = {0};
@@ -142,15 +100,12 @@ void execArgs(char** parsed, int isBackgroundProcess)
 			n--;
 		}
 	}
-/*
-*/
 
 	pid_t pid = fork();
 	if (pid == -1) {
 		printf("\nFailed forking child...\n");
 		return;
 	} else if (pid == 0) {
-		
 		if (inputFlag == 1) { //Return -1 if there's an error with the input stream
 			if (freopen(pathin, "r", stdin) == NULL) perror("Error: Couldn't redirect input stream");
 		}
@@ -167,16 +122,13 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		freopen("dev/stdin", "r", stdin);
 		freopen("dev/stdout", "w", stdout);
 
-		exit(0);
+		return exit(0);
 	}
 
 	if (pid != 0){
-
-		for(;;) {/*Things, see below*/ break;}
-		node_t * node = createNode(pid, buffer);
+		node_t * node = createNode(pid, CMD_BUFFER);
 		addNode(node);
-		memset(buffer, 0, sizeof(buffer));
-
+		memset(CMD_BUFFER, 0, sizeof(CMD_BUFFER)); //Reset CMD_BUFFER to zero
 
 		// waiting for child to terminate
 		if (!isBackgroundProcess) {
@@ -185,11 +137,14 @@ void execArgs(char** parsed, int isBackgroundProcess)
 		}
 		return;
 	}
+	return;
 }
 
 // Function where the piped system commands is executed
 void execArgsPiped(char** parsed, char** parsedpipe, int isBackgroundProcess)
 {
+	printf("Piping unimplemented....\n");
+	/*
 	// 0 is read end, 1 is write end
 	int pipefd[2];
 	pid_t p1, p2;
@@ -240,33 +195,20 @@ void execArgsPiped(char** parsed, char** parsedpipe, int isBackgroundProcess)
 			wait(NULL);
 		}
 	}
+*/
+	return;
 }
 
 // Help command builtin
-void openHelp()
-{
-	puts("\n***WELCOME TO DYHSH HELP***"
-		"\n-Use the shell at your own risk..."
-		"\nList of Commands supported:"
-		"\n>cd"
-		"\n>ls"
-		"\n>exit"
-		"\n>jobs"
-		"\n>hello"
-		"\n>all other general commands available in UNIX shell"
-		"\n>I/O Redirection"
-		"\n>Improper pipe handling"
-		"\n>improper space handling");
-
+void openHelp() {
+	printf("%s\n", helpText);
 	return;
 }
 
 // Function to execute builtin commands
-int ownCmdHandler(char** parsed)
-{
+int ownCmdHandler(char** parsed) {
 	int NoOfOwnCmds = 6, i, switchOwnArg = 0;
 	char* ListOfOwnCmds[NoOfOwnCmds];
-	char* username;
 
 	ListOfOwnCmds[0] = "exit";
 	ListOfOwnCmds[1] = "cd";
@@ -286,34 +228,21 @@ int ownCmdHandler(char** parsed)
 			printf("\nGoodbye\n");
 			exit(0);
 		case 2:
+			if (parsed[1] == NULL) {
+				chdir(homedir);
+				return 1;
+			}
 			chdir(parsed[1]);
 			return 1;
 		case 3:
 			openHelp();
 			return 1;
 		case 4:
-			username = getenv("USER");
-			printf("\nHello %s.\nMind that this is "
-				"not a place to play around."
-				"\nUse help to know more..\n",
-				username);
+			printf(helloText,
+				getUsername());
 			return 1;
 		case 5:
-			printf("=============Processes: =============\n\n");
-
-			node_t *n;
-			n = start;
-
-			printf("Parent PID: %i\n", n->pidData);
-
-			while (n->next != NULL) { 
-				n = n->next;
-				printf("\tProcess PID: %i, Command: %s\n", n->pidData, n->commandData);
-			}
-
-			printf("=====================================\n");
-			fflush(stdout);
-
+			jobs(start);
 			return 1;
 		default:
 			break;
@@ -322,31 +251,18 @@ int ownCmdHandler(char** parsed)
 	return 0;
 }
 
-void parseIO(char **parsed) {
-	parseCharToArgs(parsed, '<');
-	parseCharToArgs(parsed, '>');
-
-
-}
-
 int processString(char* str, char** parsed, int* isBackgroundTask)
 {
 	int daemon = 0;
-/*
-*/
 	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
-
-
 	
-	parseSpace(str, parsed);
-	printf("Space parsing done\n");
+	parseChar(str, parsed, " ");
 	if (parsed[0] == NULL) return 0;
 	parseIO(parsed);
 
+	printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 
-	printf("Parsing complete\n");
-	fflush(stdout);
 	if (ownCmdHandler(parsed)) {
 		return 0;
 	}
@@ -357,8 +273,24 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 
 int main()
 {
-	char inputString[MAXCOM], *parsedArgs[MAXLIST];
-	memset(parsedArgs, 0, sizeof(parsedArgs));
+
+	pw = getpwuid(getuid());
+	homedir = pw->pw_dir;
+
+	char *inputString = malloc(sizeof(char)*MAXCOM);
+	char **parsedArgs = malloc(sizeof(char*)* MAXLIST);
+
+	memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
+	memset(inputString, 0, sizeof(char)* MAXCOM);
+
+	fflush(stdout);
+	fflush(stdin);
+	
+	for(int i = 0; i < MAXLIST; i++) {
+		parsedArgs[i] = (char*) malloc(sizeof(inputString));
+	} 
+	
+	
 	//char* parsedArgsPiped[MAXLIST];
 	int execFlag = 0;
 	init_shell();
@@ -368,12 +300,17 @@ int main()
 
 	for(;;){
 
+		memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
+		memset(inputString, 0, sizeof(char)* MAXCOM);
+
 		zombie_cleanup(start);
 
 		printDir();
 		if (!takeInput(inputString))
 			continue;
-		strcpy(buffer, inputString);
+		
+		fflush(stdin);
+		strcpy(CMD_BUFFER, inputString);
 		zombie_cleanup(start);
 
 		int isBackgroundProcess = 0;
@@ -386,10 +323,8 @@ int main()
 		// 2 if it is including a pipe.
 
 		// execute
-
 		if (execFlag == 1) {
 			execArgs(parsedArgs, isBackgroundProcess);
-
 		}
 	}
 	return 0;

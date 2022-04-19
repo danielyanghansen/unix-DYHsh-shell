@@ -267,8 +267,6 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
 
-	checkArgsList(parsed);
-
 	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 
 	if (ownCmdHandler(parsed)) {

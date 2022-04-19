@@ -26,6 +26,7 @@ void init_shell() {
 	printf("\n\n %s \033[0;32m", headerText);
 	printf("%s\n", headerCard);
 	printf("\n\n\nUSER is: \033[0;33m@%s", getUsername());
+	printf("\nHome dir is %s", homedir);
 	printf("\033[0m\n"); //reset text color
 	return;
 }
@@ -72,33 +73,38 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
 		//The **DIFFICULT** alternative would be to chain the streams.
 		//Output appending (>>) is not supported
-		if (p_char_in != NULL && parsed[n+1] != NULL) {
+		if (p_char_in != NULL && parsed[n+1][0] != '\0') {
 
 			inputFlag = 1; 
 			strcpy(pathin, parsed[n+1]);
-			free(parsed[n]);
-			free(parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
-			parsed[argLen -1] = NULL;
-			parsed[argLen -2] = NULL;
+			parsed[argLen -1] = "\0";
+			parsed[argLen -2] = "\0";
 			argLen -= 2;
 			n--;
 
-		} else if (p_char_out != NULL  && parsed[n+1] != NULL) {
+		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
 			outputFlag = 1; 
 			strcpy(pathout, parsed[n+1]);
-			free(parsed[n]);
-			free(parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
-			parsed[argLen -1] = NULL;
-			parsed[argLen -2] = NULL;
+			parsed[argLen -1][0] = '\0';
+			parsed[argLen -2][0] = '\0';
 			argLen -= 2;
 			n--;
 		}
+	}
+
+	char* executable [MAXLIST] = {'\0'};
+	for (int i = 0; i < argLen; i++) {
+		executable[i] = parsed[i];
 	}
 
 	pid_t pid = fork();
@@ -114,7 +120,7 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
 		}
 
-		if (execvp(parsed[0], parsed) < 0) {
+		if (execvp(executable[0], executable) < 0) {
 			printf("\nCould not execute command [%s]...\n\n", parsed[0]);
 			fflush(stdout);
 		}
@@ -228,7 +234,7 @@ int ownCmdHandler(char** parsed) {
 			printf("\nGoodbye\n");
 			exit(0);
 		case 2:
-			if (parsed[1] == NULL) {
+			if (parsed[1][0] == '\0') {
 				chdir(homedir);
 				return 1;
 			}
@@ -258,10 +264,10 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	*isBackgroundTask = daemon;
 	
 	parseChar(str, parsed, " ");
-	if (parsed[0] == NULL) return 0;
+	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
 
-	printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
+	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
@@ -271,23 +277,16 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	}
 }
 
-int main()
-{
-
+int main() {
 	pw = getpwuid(getuid());
 	homedir = pw->pw_dir;
 
-	char *inputString = malloc(sizeof(char)*MAXCOM);
-	char **parsedArgs = malloc(sizeof(char*)* MAXLIST);
+	char *inputString = malloc(sizeof(char) * MAXCOM);
+	char **parsedArgs = malloc(sizeof(char*) * MAXLIST);
 
-	memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
-	memset(inputString, 0, sizeof(char)* MAXCOM);
-
-	fflush(stdout);
-	fflush(stdin);
 	
 	for(int i = 0; i < MAXLIST; i++) {
-		parsedArgs[i] = (char*) malloc(sizeof(inputString));
+		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
 	
 	
@@ -297,17 +296,18 @@ int main()
 	start = createNode(getpid(), "Parent\0");
 	setLastNode(start);
 
-
 	for(;;){
 
-		memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
-		memset(inputString, 0, sizeof(char)* MAXCOM);
-
+		memset(inputString, 0, sizeof(char) * MAXCOM);
 		zombie_cleanup(start);
 
 		printDir();
 		if (!takeInput(inputString))
 			continue;
+		
+		for(int i =0; i < MAXLIST; i ++) {
+			parsedArgs[i][0] = '\0';
+		}
 		
 		fflush(stdin);
 		strcpy(CMD_BUFFER, inputString);
@@ -315,8 +315,7 @@ int main()
 
 		int isBackgroundProcess = 0;
 		// process
-		execFlag = processString(inputString,
-		parsedArgs, &isBackgroundProcess);
+		execFlag = processString(inputString, parsedArgs, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command
@@ -327,5 +326,6 @@ int main()
 			execArgs(parsedArgs, isBackgroundProcess);
 		}
 	}
+	freeArgs(parsedArgs);
 	return 0;
 }

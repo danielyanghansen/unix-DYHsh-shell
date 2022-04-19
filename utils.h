@@ -4,6 +4,6 @@
 
 int getArgLen(char** parsed);
 
-void checkArgList(char** parsedArgs);
+void checkArgsList(char** parsedArgs);
 
 #endif

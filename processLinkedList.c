@@ -1,7 +1,6 @@
-#include"linkedList.h"
+#include"processLinkedList.h"
 
 //Universally accessable which is bad, but we don't know better solutions (yet)
-static struct PidNode* last = NULL;
 
 node_t * createNode(int pidData, char* str){
     
@@ -58,4 +57,40 @@ int deleteNode(node_t *node) {
 
     free(node);
     return 0;
+}
+
+void zombie_cleanup(node_t *start) {
+	for(node_t* n = start->next; n != NULL; n = n->next){
+		int wstatus;
+		pid_t deadstatus = waitpid(n->pidData, &wstatus, WNOHANG | WUNTRACED | WCONTINUED);
+
+		if (deadstatus != 0) {
+			if (deadstatus > 0) {
+				kill(deadstatus, SIGKILL);
+			}
+
+			printf("Exit status [%s] = %i\n", n->commandData, WEXITSTATUS(wstatus) );
+			n = n->previous;
+			deleteNode(n->next);
+		}	
+	}
+	return;
+}
+
+void jobs(node_t* startNode) {
+    printf("=============Processes: =============\n\n");
+    node_t *n;
+    n = startNode;
+
+    printf("Parent PID: %i\n", n->pidData);
+
+    while (n->next != NULL) { 
+        n = n->next;
+        printf("\tProcess PID: %i, Command: %s\n", n->pidData, n->commandData);
+    }
+
+    printf("=====================================\n");
+    fflush(stdout);
+
+    return;
 }

@@ -1,4 +1,4 @@
-#include"linkedList.c"
+#include"processLinkedList.c"
 #include<sys/types.h>
 
 int main() {

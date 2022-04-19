@@ -261,7 +261,7 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	if (parsed[0] == NULL) return 0;
 	parseIO(parsed);
 
-	printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
+	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 
 	if (ownCmdHandler(parsed)) {
 		return 0;
@@ -277,17 +277,17 @@ int main()
 	pw = getpwuid(getuid());
 	homedir = pw->pw_dir;
 
-	char *inputString = malloc(sizeof(char)*MAXCOM);
-	char **parsedArgs = malloc(sizeof(char*)* MAXLIST);
+	char *inputString = malloc(sizeof(char) * MAXCOM);
+	char **parsedArgs = malloc(sizeof(char*) * MAXLIST);
 
-	memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
-	memset(inputString, 0, sizeof(char)* MAXCOM);
+	memset(parsedArgs, 0, sizeof(char*) * MAXLIST);
+	memset(inputString, 0, sizeof(char) * MAXCOM);
 
 	fflush(stdout);
 	fflush(stdin);
 	
 	for(int i = 0; i < MAXLIST; i++) {
-		parsedArgs[i] = (char*) malloc(sizeof(inputString));
+		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
 	
 	
@@ -300,8 +300,12 @@ int main()
 
 	for(;;){
 
-		memset(parsedArgs, 0, sizeof(char*)* MAXLIST);
-		memset(inputString, 0, sizeof(char)* MAXCOM);
+		for(int i =0; i < MAXLIST; i ++) {
+			parsedArgs[i][0] = '\0';
+		}
+
+
+		memset(inputString, 0, sizeof(char) * MAXCOM);
 
 		zombie_cleanup(start);
 
@@ -327,5 +331,6 @@ int main()
 			execArgs(parsedArgs, isBackgroundProcess);
 		}
 	}
+	freeArgs(parsedArgs);
 	return 0;
 }

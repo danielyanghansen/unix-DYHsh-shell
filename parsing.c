@@ -48,13 +48,10 @@ void parseCharToArgs(char **parsed, char splitter) {
                 if (parsed[i][0] == splitter) { //case: first char is splitter
 
                     char symbols[2] = {splitter, '\0'};
-                    char temp[MAXCOM];
-
-                    strcpy(temp, parsed[i]);
+                    strcpy(parsed[i+1], &parsed[i][1]);
+                    
                     strcpy(parsed[i], symbols);
-                    char *p_char2 = (char*) (strchr(temp, (int) splitter) + 1);
 
-                    strcpy(parsed[i+1], ((char*) p_char2));
 
                 } else { //splitter is later in the string:
                     char after[MAXCOM] = {0};

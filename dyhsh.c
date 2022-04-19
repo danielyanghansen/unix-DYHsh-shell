@@ -77,8 +77,8 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 
 			inputFlag = 1; 
 			strcpy(pathin, parsed[n+1]);
-			free(parsed[n]);
-			free(parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
@@ -90,8 +90,8 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
 			outputFlag = 1; 
 			strcpy(pathout, parsed[n+1]);
-			free(parsed[n]);
-			free(parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
@@ -100,6 +100,11 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			argLen -= 2;
 			n--;
 		}
+	}
+
+	char* executable [MAXLIST] = {'\0'};
+	for (int i = 0; i < argLen; i++) {
+		executable[i] = parsed[i];
 	}
 
 	pid_t pid = fork();
@@ -115,7 +120,7 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			if (freopen(pathout, "w", stdout) == NULL) perror("Error: Couldn't redirect output stream");
 		}
 
-		if (execvp(parsed[0], parsed) < 0) {
+		if (execvp(executable[0], executable) < 0) {
 			printf("\nCould not execute command [%s]...\n\n", parsed[0]);
 			fflush(stdout);
 		}

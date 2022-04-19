@@ -1,15 +1,12 @@
 #include"utils.h"
 
 int getArgLen(char **parsed) {
-    int argLen = 0;
-
-    for(int i = 0; 1 ; i++) {
-        if ( (void*) parsed[i] == NULL) {
-            argLen = i;
-            break;
+    for(int i = 0; i < MAXCOM ; i++) {
+        if (parsed[i][0] == '\0') {
+            return i;
         }
     }
-    return argLen;
+    return MAXCOM;
 }
 
 void checkArgsList(char **parsedArgs) {

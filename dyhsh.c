@@ -72,7 +72,7 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
 		//The **DIFFICULT** alternative would be to chain the streams.
 		//Output appending (>>) is not supported
-		if (p_char_in != NULL && parsed[n+1] != NULL) {
+		if (p_char_in != NULL && parsed[n+1][0] != '\0') {
 
 			inputFlag = 1; 
 			strcpy(pathin, parsed[n+1]);
@@ -81,12 +81,12 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
-			parsed[argLen -1] = NULL;
-			parsed[argLen -2] = NULL;
+			parsed[argLen -1] = "\0";
+			parsed[argLen -2] = "\0";
 			argLen -= 2;
 			n--;
 
-		} else if (p_char_out != NULL  && parsed[n+1] != NULL) {
+		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
 			outputFlag = 1; 
 			strcpy(pathout, parsed[n+1]);
 			free(parsed[n]);
@@ -94,8 +94,8 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
 				parsed[m] = parsed[m+2];
 			}
-			parsed[argLen -1] = NULL;
-			parsed[argLen -2] = NULL;
+			parsed[argLen -1][0] = '\0';
+			parsed[argLen -2][0] = '\0';
 			argLen -= 2;
 			n--;
 		}
@@ -228,7 +228,7 @@ int ownCmdHandler(char** parsed) {
 			printf("\nGoodbye\n");
 			exit(0);
 		case 2:
-			if (parsed[1] == NULL) {
+			if (parsed[1][0] == '\0') {
 				chdir(homedir);
 				return 1;
 			}
@@ -258,7 +258,7 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	*isBackgroundTask = daemon;
 	
 	parseChar(str, parsed, " ");
-	if (parsed[0] == NULL) return 0;
+	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
 
 	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
@@ -271,20 +271,13 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	}
 }
 
-int main()
-{
-
+int main() {
 	pw = getpwuid(getuid());
 	homedir = pw->pw_dir;
 
 	char *inputString = malloc(sizeof(char) * MAXCOM);
 	char **parsedArgs = malloc(sizeof(char*) * MAXLIST);
 
-	memset(parsedArgs, 0, sizeof(char*) * MAXLIST);
-	memset(inputString, 0, sizeof(char) * MAXCOM);
-
-	fflush(stdout);
-	fflush(stdin);
 	
 	for(int i = 0; i < MAXLIST; i++) {
 		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
@@ -297,21 +290,18 @@ int main()
 	start = createNode(getpid(), "Parent\0");
 	setLastNode(start);
 
-
 	for(;;){
 
-		for(int i =0; i < MAXLIST; i ++) {
-			parsedArgs[i][0] = '\0';
-		}
-
-
 		memset(inputString, 0, sizeof(char) * MAXCOM);
-
 		zombie_cleanup(start);
 
 		printDir();
 		if (!takeInput(inputString))
 			continue;
+		
+		for(int i =0; i < MAXLIST; i ++) {
+			parsedArgs[i][0] = '\0';
+		}
 		
 		fflush(stdin);
 		strcpy(CMD_BUFFER, inputString);
@@ -319,8 +309,7 @@ int main()
 
 		int isBackgroundProcess = 0;
 		// process
-		execFlag = processString(inputString,
-		parsedArgs, &isBackgroundProcess);
+		execFlag = processString(inputString, parsedArgs, &isBackgroundProcess);
 		// execflag returns zero if there is no command
 		// or it is a builtin command,
 		// 1 if it is a simple command

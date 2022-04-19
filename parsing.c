@@ -1,7 +1,7 @@
 #include "parsing.h"
 
 int freeArgs(char **parsed) { //Currently unused
-	for(int i = getArgLen(parsed) -1; i >= 0; i--) {
+	for(int i = MAXLIST -1; i >= 0; i--) {
         free(parsed[i]);
 	}
     return 0;
@@ -14,7 +14,7 @@ int freeArgs(char **parsed) { //Currently unused
  * @return char* 
  */
 char* parseMalloc(char *parsedString) {
-    char* temp = malloc(sizeof(char)*MAXCOM);
+    char* temp = malloc(sizeof(char) * MAXCOM);
     if (parsedString != NULL) {
         strcpy(temp, parsedString);
     }
@@ -27,7 +27,8 @@ void parseCharToArgs(char **parsed, char splitter) {
 
 	for(int i = 0; i < argLen ; i++ ) {     
 		//Do someting, checking all elements of arglist for the splitter symbol
-        if(parsed[i] == NULL) break;
+        if(parsed[i][0] == '\0') break;
+
 		if (strlen(parsed[i]) > 1) { //if present:
             char *p_char = strchr(parsed[i], (int) splitter);
             int state = (p_char == NULL);
@@ -49,10 +50,10 @@ void parseCharToArgs(char **parsed, char splitter) {
                     char temp[MAXCOM];
 
                     strcpy(temp, parsed[i]);
-                    free(parsed[i]);
-                    parsed[i] = parseMalloc(symbols);
+                    strcpy(parsed[i], symbols);
                     char *p_char2 = (char*) (strchr(temp, (int) splitter) + 1);
-                    parsed[i+1] = parseMalloc((char*) p_char2);
+
+                    strcpy(parsed[i+1], ((char*) p_char2));
 
                 } else { //splitter is later in the string:
                     char after[MAXCOM] = {0};
@@ -62,11 +63,10 @@ void parseCharToArgs(char **parsed, char splitter) {
                     strncpy(before, parsed[i], (int) (p_char -parsed[i]));
                     strcpy(after, p_char);
 
-                    free(parsed[i]);
-                    parsed[i] = parseMalloc(before);
-                    parsed[i+1] = parseMalloc(after);
+                    strcpy(parsed[i] ,before);
+                    strcpy(parsed[i+1], after);
                 }
-            if(parsed[i +1] == NULL) break;
+            if(parsed[i +1][0] == '\0') break;
             }
 		}
     }
@@ -77,11 +77,11 @@ int parsePipe(char* str, char** strpiped)
 {
 	for (int i = 0; i < 2; i++) {
 		strpiped[i] = strsep(&str, "|");
-		if (strpiped[i] == NULL)
+		if (strpiped[i][0] == '\0')
 			break;
 	}
 
-	if (strpiped[1] == NULL)
+	if (strpiped[1][0] == '\0')
 		return 0; // returns zero if no pipe is found.
 	else {
 		return 1;
@@ -90,20 +90,18 @@ int parsePipe(char* str, char** strpiped)
 
 void parseChar(char* str, char** parsed, char* splitter)
 {
-    char s[2];
-    strcpy(s,splitter);
     char* token;
 
-    token = strtok(str, s);   
+    token = strtok(str, splitter);   
 	for (int i = 0; i < MAXLIST; i++) {
 		if (token == NULL) {
 			break;
         }
-        parsed[i] = parseMalloc(token);
+        strcpy(parsed[i], token);
 		if (strlen(parsed[i]) == 0) {
             i--;
         }
-        token = strtok(NULL, s);
+        token = strtok(NULL, splitter);
 	}
 }
 

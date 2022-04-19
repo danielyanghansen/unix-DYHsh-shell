@@ -26,6 +26,7 @@ void init_shell() {
 	printf("\n\n %s \033[0;32m", headerText);
 	printf("%s\n", headerCard);
 	printf("\n\n\nUSER is: \033[0;33m@%s", getUsername());
+	printf("\nHome dir is %s", homedir);
 	printf("\033[0m\n"); //reset text color
 	return;
 }
@@ -260,6 +261,8 @@ int processString(char* str, char** parsed, int* isBackgroundTask)
 	parseChar(str, parsed, " ");
 	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
+
+	checkArgsList(parsed);
 
 	//printf(" \n"); //Do not remove: This printf is masking a deeper memory leakage problem (and therefore enabling the rest of the program)
 

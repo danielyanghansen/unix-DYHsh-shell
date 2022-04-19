@@ -1,4 +1,5 @@
 #include "parsing.h"
+#include "utils.c"
 
 int freeArgs(char **parsed) { //Currently unused
 	for(int i = MAXLIST -1; i >= 0; i--) {

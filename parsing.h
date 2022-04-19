@@ -1,7 +1,6 @@
 #ifndef __parsing_h__
 #define __parsing_h__
 
-#include "utils.c"
 #include "common.h"
 
 int freeArgs(char **parsed);

@@ -80,10 +80,10 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			parsed[n][0] = '\0';
 			parsed[n+1][0] = '\0';
 			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
-				memcpy(parsed[m], parsed[m+2], sizeof(char*));
+				memcpy(parsed[m], parsed[m+2], sizeof(char *));
 			}
-			parsed[argLen -1][0] = "\0";
-			parsed[argLen -2][0] = "\0";
+			strcpy(parsed[argLen -1], "\0");
+			strcpy(parsed[argLen -2],"\0");
 			argLen -= 2;
 			n--;
 
@@ -151,7 +151,11 @@ void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
 {
 	printf("Piping unimplemented....\n");
 
-	for (int n = 0; n < getArgLen(unparsedPipe); n++) {
+	int pipefd[MAXPIPE];
+
+	checkArgsList(unparsedPipe);
+
+	for (int n = 0; n < getArgLen(unparsedPipe) && n < MAXPIPE; n++) {
 		printf("Pipe part %i: [%s]\n", n, unparsedPipe[n]);
 
 		char* temp[MAXLIST];
@@ -159,10 +163,11 @@ void execArgsPiped(char** unparsedPipe, int isBackgroundProcess)
 			temp[i] = malloc(sizeof(char) * MAXCOM);
 			temp[i][0] = '\0';
 		}
-		parseChar(unparsedPipe[n], temp, " ");
+		parseChar(unparsedPipe[n], temp, " ", MAXLIST);
 		parseIO(temp);
 
 		checkArgsList(temp);
+
 /*
 		
 */
@@ -280,12 +285,12 @@ int processString(char* str, char** parsed, char** unparsedPiped, int* isBackgro
 	daemon = parseDaemon(str);
 	*isBackgroundTask = daemon;
 
-	int isPiped = parseChar(str, unparsedPiped, "|");
+	int isPiped = parseChar(str, unparsedPiped, "|", MAXPIPE);
 	if (isPiped) {
 		return 2;
 	}
 
-	parseChar(str, parsed, " ");
+	parseChar(str, parsed, " ", MAXLIST);
 	if (parsed[0][0] == '\0') return 0;
 	parseIO(parsed);
 
@@ -302,14 +307,14 @@ int main() {
 	homedir = pw->pw_dir;
 
 	char *inputString = malloc(sizeof(char) * MAXCOM);
-	char **parsedArgs = malloc(sizeof(char*) * MAXLIST);
-	char **unparsedPipeParts = malloc(sizeof(char*) * MAXPIPE);
+	char **parsedArgs = malloc(sizeof(char*) * (MAXLIST + 1));
+	char **unparsedPipeParts = malloc(sizeof(char*) * (MAXPIPE + 1)); //Need an extra spot for judging end state
 
 	
-	for(int i = 0; i < MAXLIST; i++) {
+	for(int i = 0; i < MAXLIST + 1; i++) {
 		parsedArgs[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
-	for(int i = 0; i < MAXPIPE; i++) {
+	for(int i = 0; i < MAXPIPE + 1; i++) {
 		unparsedPipeParts[i] = (char*) malloc(sizeof(char) * MAXCOM);
 	} 
 	
@@ -326,10 +331,10 @@ int main() {
 		memset(inputString, 0, sizeof(char) * MAXCOM);
 		zombie_cleanup(start);
 
-		for(int i =0; i < MAXLIST; i ++) {
+		for(int i =0; i < MAXLIST + 1; i ++) {
 			parsedArgs[i][0] = '\0';
 		}
-		for(int i =0; i < MAXPIPE; i ++) {
+		for(int i =0; i < MAXPIPE + 1; i ++) {
 			unparsedPipeParts[i][0] = '\0';
 		}
 		

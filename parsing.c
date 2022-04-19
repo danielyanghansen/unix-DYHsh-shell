@@ -39,7 +39,7 @@ void parseCharToArgs(char **parsed, char splitter) {
 
             if (p_char != NULL) {
                 for (int j = argLen -1 ; j > i ; j--) { //then move up all follwing indexes (except the last)
-                    memcpy(parsed[j+1], parsed[j], sizeof(char*));
+                    memcpy(parsed[j+1], parsed[j], sizeof(char *));
                 }
             argLen++;
 
@@ -78,11 +78,11 @@ int parsePipe(char* str, char** strpiped) {
 	}
 }
 
-int parseChar(char* str, char** parsed, char* splitter) {
+int parseChar(char* str, char** parsed, char* splitter, int max) {
     char* token;
 
     token = strtok(str, splitter);   
-	for (int i = 0; i < MAXLIST; i++) {
+	for (int i = 0; i < max; i++) {
 		if (token == NULL) {
 			break;
         }

@@ -15,7 +15,7 @@ char* parseMalloc(char *parsedString);
 
 void parseCharToArgs(char **parsed, char splitter);
 
-int parseChar(char* str, char** parsed, char* splitter);
+int parseChar(char* str, char** parsed, char* splitter, int max);
 
 /**
  * @brief Checks if the last non-space (' ') character is '&'

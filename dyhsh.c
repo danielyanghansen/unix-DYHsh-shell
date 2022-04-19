@@ -48,7 +48,7 @@ int takeInput(char* str) {
 void printDir() {
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
-	if (strcmp(cwd, homedir)) {
+	if (strcmp(cwd, homedir) == 0) {
 		strcpy(cwd, "~");
 	}
 	printf("\n\033[0;31mDir: \033[0;36m%s :\033[0m", cwd);
@@ -76,18 +76,58 @@ void redirectOutput(char* filepath){
   dup2(fileno(fd), STDOUT_FILENO);
   fclose(fd);
 }
+void flagIORedirect(int *inputFlag, int *outputFlag, char *pathin, char *pathout, char **parsed) {
+	int argLen = getArgLen(parsed);
+	
+	for (int n = 0; n < argLen; n++) {
+		char *p_char_in = strchr(parsed[n], (int) '<');
+		char *p_char_out = strchr(parsed[n], (int) '>');
+
+		//NOTE: If there are multiple repeated in/output streams, an option is just to overwrite the source
+		//The **DIFFICULT** alternative would be to chain the streams.
+		//Output appending (>>) is not supported
+		if (p_char_in != NULL && parsed[n+1][0] != '\0') {
+
+			*inputFlag = 1; 
+			strcpy(pathin, parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
+			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the < symbol entry as well as the entry behind it)
+				memcpy(parsed[m], parsed[m+2], sizeof(char *));
+			}
+			strcpy(parsed[argLen -1], "\0");
+			strcpy(parsed[argLen -2],"\0");
+			argLen -= 2;
+			n--;
+
+		} else if (p_char_out != NULL  && parsed[n+1][0] != '\0') {
+			*outputFlag = 1; 
+			strcpy(pathout, parsed[n+1]);
+			parsed[n][0] = '\0';
+			parsed[n+1][0] = '\0';
+			for (int m = n; m < argLen -2; m++) { //Truncate 'parsed' by 2. (Removing the > symbol entry as well as the entry behind it)
+				parsed[m] = parsed[m+2];
+			}
+			parsed[argLen -1][0] = '\0';
+			parsed[argLen -2][0] = '\0';
+			argLen -= 2;
+			n--;
+		}
+	}
+}
 
 // Function where the system command is executed
 void execArgs(char** parsed, int isBackgroundProcess) {
-	int argLen = getArgLen(parsed);
 
 	char pathin[MAXCOM] = {0};
 	char pathout[MAXCOM] = {0};
 	int inputFlag = 0;
 	int outputFlag = 0;
 
-	fflush(stdout);
+	flagIORedirect(&inputFlag, &outputFlag, pathin, pathout, parsed);
 
+	/*
+	int argLen = getArgLen(parsed);
 	for (int n = 0; n < argLen; n++) {
 		char *p_char_in = strchr(parsed[n], (int) '<');
 		char *p_char_out = strchr(parsed[n], (int) '>');
@@ -123,6 +163,8 @@ void execArgs(char** parsed, int isBackgroundProcess) {
 			n--;
 		}
 	}
+	*/
+	int argLen = getArgLen(parsed); 
 
 	char* executable [MAXLIST] = {'\0'};
 	for (int i = 0; i < argLen; i++) {
@@ -175,6 +217,19 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 	int pipefd[2];
 	pid_t p1, p2;
 
+	int argLen1 = getArgLen(parsed);
+	int argLen2 = getArgLen(parsedpipe);
+
+	char* executable1 [MAXLIST] = {'\0'};
+	char* executable2 [MAXLIST] = {'\0'};
+	
+	for (int i = 0; i < argLen1; i++) {
+		executable1[i] = parsed[i];
+	}
+	for (int i = 0; i < argLen2; i++) {
+		executable2[i] = parsedpipe[i];
+	}
+
 	if (pipe(pipefd) < 0) {
 		printf("\nPipe could not be initialized");
 		return;
@@ -192,8 +247,8 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 
-		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command 1 [%s]...\n", parsed[0]);
+		if (execvp(executable1[0], executable1) < 0) {
+			printf("\nCould not execute command 1 [%s]...\n", executable1[0]);
 			exit(0);
 		}
 	} else {
@@ -211,10 +266,10 @@ void execArgsPiped(char** parsed, char** parsedpipe)
 			close(pipefd[1]);
 			dup2(pipefd[0], STDIN_FILENO);
 			close(pipefd[0]);
-			if (execvp(parsedpipe[0], parsedpipe) < 0) {
-				printf("\nCould not execute command 2 [%s]...\n", parsedpipe[0]);
-				checkArgsList(parsed);
-				checkArgsList(parsedpipe);
+			if (execvp(executable2[0], executable2) < 0) {
+				printf("\nCould not execute command 2 [%s]...\n", executable2[0]);
+				checkArgsList(executable1);
+				checkArgsList(executable2);
 				exit(0);
 			}
 		} else {

@@ -27,4 +27,6 @@ int parseDaemon(char *str);
 
 void parseIO(char **parsed);
 
+int parsePipe(char* str, char** strpiped);
+
 #endif

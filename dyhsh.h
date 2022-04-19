@@ -84,5 +84,7 @@ int ownCmdHandler(char** parsed);
 
 int processString(char* str, char** parsed, char** parsedpipe, int* isBackgroundTask);
 
+void flagIORedirect(int *inputFlag, int *outputFlag, char *pathin, char *pathout, char **parsed);
+
 
 #endif
